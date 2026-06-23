@@ -25,7 +25,13 @@ const logout = () => {
         <nav class="sidebar-nav">
             <ul class="nav-list">
                 <li>
-                    <RouterLink to="/" class="nav-item" :class="{ 'is-active': isActive('/') }">
+                    <RouterLink
+                        to="/"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/') }"
+                        aria-label="Dashboard"
+                        :aria-current="isActive('/') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M4 10.5L12 4l8 6.5" />
@@ -37,7 +43,13 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/contacts" class="nav-item" :class="{ 'is-active': isActive('/contacts') }">
+                    <RouterLink
+                        to="/contacts"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/contacts') }"
+                        aria-label="Contacts"
+                        :aria-current="isActive('/contacts') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
@@ -50,7 +62,13 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/campaigns" class="nav-item" :class="{ 'is-active': isActive('/campaigns') }">
+                    <RouterLink
+                        to="/campaigns"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/campaigns') }"
+                        aria-label="Campaigns"
+                        :aria-current="isActive('/campaigns') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 11.5 19 5l-6.5 14-2.5-5-5-2.5Z" />
@@ -61,7 +79,13 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/messages" class="nav-item" :class="{ 'is-active': isActive('/messages') }">
+                    <RouterLink
+                        to="/messages"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/messages') }"
+                        aria-label="Messages"
+                        :aria-current="isActive('/messages') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 6.5h14v9H9l-4 3v-12Z" />
@@ -72,7 +96,13 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/templates" class="nav-item" :class="{ 'is-active': isActive('/templates') }">
+                    <RouterLink
+                        to="/templates"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/templates') }"
+                        aria-label="Templates"
+                        :aria-current="isActive('/templates') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <rect x="5" y="4" width="14" height="16" rx="1.5" />
@@ -87,7 +117,13 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/settings" class="nav-item" :class="{ 'is-active': isActive('/settings') }">
+                    <RouterLink
+                        to="/settings"
+                        class="nav-item"
+                        :class="{ 'is-active': isActive('/settings') }"
+                        aria-label="Settings"
+                        :aria-current="isActive('/settings') ? 'page' : undefined"
+                    >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
@@ -99,7 +135,7 @@ const logout = () => {
                 </li>
             </ul>
 
-            <button @click="logout" class="nav-item logout-btn" type="button">
+            <button @click="logout" class="nav-item logout-btn" type="button" aria-label="Logout">
                 <span class="nav-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
                         <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
