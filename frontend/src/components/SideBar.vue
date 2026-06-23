@@ -16,7 +16,7 @@ const logout = () => {
         <nav class="sidebar-nav">
             <ul class="nav-list">
                 <li>
-                    <RouterLink to="/" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M4 10.5L12 4l8 6.5" />
@@ -28,7 +28,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/contacts" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/contacts" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
@@ -41,7 +41,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/campaigns" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/campaigns" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 11.5 19 5l-6.5 14-2.5-5-5-2.5Z" />
@@ -52,7 +52,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/messages" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/messages" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 6.5h14v9H9l-4 3v-12Z" />
@@ -63,7 +63,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/templates" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/templates" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <rect x="5" y="4" width="14" height="16" rx="1.5" />
@@ -78,7 +78,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/settings" class="nav-item" exact-active-class="is-active">
+                    <RouterLink to="/settings" class="nav-item">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
@@ -90,7 +90,7 @@ const logout = () => {
                 </li>
             </ul>
 
-            <button @click="logout" class="nav-item logout-btn" type="button">
+            <button @click="logout" class="nav-item logout-btn" type="button" aria-label="Log out of account">
                 <span class="nav-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
                         <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
@@ -164,7 +164,7 @@ const logout = () => {
     background: #f4f7fb;
 }
 
-.nav-item.is-active {
+.nav-item.router-link-exact-active {
     background: linear-gradient(180deg, #eef8f1 0%, #f4fbf6 100%);
     color: #1b9a5d;
     font-weight: 700;
@@ -184,6 +184,7 @@ const logout = () => {
 .nav-icon svg {
     width: 100%;
     height: 100%;
+    fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
     stroke-linecap: round;
