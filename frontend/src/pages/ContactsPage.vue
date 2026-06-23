@@ -23,7 +23,7 @@ const csvInputRef = ref(null)
 
 // Load contacts on mount
 onMounted(() => {
-  contactStore.getContacts()
+  contactStore.getContacts({ search: searchQuery.value, tag: selectedTag.value })
 })
 
 // Reset page when search/filter changes
