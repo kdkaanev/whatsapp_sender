@@ -99,7 +99,7 @@ const logout = () => {
                 </li>
             </ul>
 
-            <button @click="logout" class="nav-item logout-btn" type="button" aria-label="Log out of account">
+            <button @click="logout" class="nav-item logout-btn" type="button">
                 <span class="nav-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
                         <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
@@ -163,7 +163,7 @@ const logout = () => {
     cursor: pointer;
     width: 100%;
     text-align: left;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     font-family: inherit;
     border-radius: 16px;
@@ -175,6 +175,7 @@ const logout = () => {
 
 .nav-item.is-active {
     background: linear-gradient(180deg, #eef8f1 0%, #f4fbf6 100%);
+    border: 1px solid rgba(27, 154, 93, 0.16);
     color: #1b9a5d;
     font-weight: 700;
     box-shadow: 0 8px 20px rgba(27, 154, 93, 0.08);
