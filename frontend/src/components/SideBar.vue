@@ -1,9 +1,18 @@
 <script setup>
 import { useAuthStore } from '../stores/auth.js'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const router = useRouter()
+
+const isActive = (path) => {
+    if (path === '/') {
+        return route.path === '/'
+    }
+
+    return route.path === path || route.path.startsWith(`${path}/`)
+}
 
 const logout = () => {
     authStore.logout()
@@ -16,7 +25,7 @@ const logout = () => {
         <nav class="sidebar-nav">
             <ul class="nav-list">
                 <li>
-                    <RouterLink to="/" class="nav-item">
+                    <RouterLink to="/" class="nav-item" :class="{ 'is-active': isActive('/') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M4 10.5L12 4l8 6.5" />
@@ -28,7 +37,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/contacts" class="nav-item">
+                    <RouterLink to="/contacts" class="nav-item" :class="{ 'is-active': isActive('/contacts') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
@@ -41,7 +50,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/campaigns" class="nav-item">
+                    <RouterLink to="/campaigns" class="nav-item" :class="{ 'is-active': isActive('/campaigns') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 11.5 19 5l-6.5 14-2.5-5-5-2.5Z" />
@@ -52,7 +61,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/messages" class="nav-item">
+                    <RouterLink to="/messages" class="nav-item" :class="{ 'is-active': isActive('/messages') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M5 6.5h14v9H9l-4 3v-12Z" />
@@ -63,7 +72,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/templates" class="nav-item">
+                    <RouterLink to="/templates" class="nav-item" :class="{ 'is-active': isActive('/templates') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <rect x="5" y="4" width="14" height="16" rx="1.5" />
@@ -78,7 +87,7 @@ const logout = () => {
                     </RouterLink>
                 </li>
                 <li>
-                    <RouterLink to="/settings" class="nav-item">
+                    <RouterLink to="/settings" class="nav-item" :class="{ 'is-active': isActive('/settings') }">
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
@@ -161,10 +170,10 @@ const logout = () => {
 }
 
 .nav-item:hover {
-    background: #f4f7fb;
+    background: #edf2f7;
 }
 
-.nav-item.router-link-exact-active {
+.nav-item.is-active {
     background: linear-gradient(180deg, #eef8f1 0%, #f4fbf6 100%);
     color: #1b9a5d;
     font-weight: 700;
