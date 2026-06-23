@@ -135,16 +135,20 @@ const logout = () => {
                 </li>
             </ul>
 
-            <button @click="logout" class="nav-item logout-btn" type="button" aria-label="Logout">
-                <span class="nav-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                        <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
-                        <path d="M16 17l5-5-5-5" />
-                        <path d="M21 12H9" />
-                    </svg>
-                </span>
-                <span class="nav-text">Logout</span>
-            </button>
+            <ul class="nav-list nav-list-footer">
+                <li>
+                    <button @click="logout" class="nav-item logout-btn" type="button" aria-label="Logout">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
+                                <path d="M16 17l5-5-5-5" />
+                                <path d="M21 12H9" />
+                            </svg>
+                        </span>
+                        <span class="nav-text">Logout</span>
+                    </button>
+                </li>
+            </ul>
         </nav>
     </aside>
 </template>
@@ -195,7 +199,7 @@ const logout = () => {
     text-decoration: none;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     background-color: transparent;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
     width: 100%;
     text-align: left;
@@ -242,8 +246,11 @@ const logout = () => {
 }
 
 .logout-btn {
-    margin-top: auto;
     color: #4b5563;
+}
+
+.nav-list-footer {
+    margin-top: auto;
 }
 
 .logout-btn:hover {
