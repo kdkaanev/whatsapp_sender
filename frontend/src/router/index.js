@@ -7,10 +7,16 @@ import TemplatesPage from '../pages/TemplatesPage.vue'
 import Settings from '../pages/Settings.vue'
 import LogIn from '../components/LogIn.vue'
 import RegisterPage from '../pages/RegisterPage.vue'
+import LandingPage from '../pages/LandingPage.vue'
 
 const routes = [
   {
     path: '/',
+    name: 'LandingPage',
+    component: LandingPage
+  },
+  {
+    path: '/dashboard',
     name: 'Dashboard',
     component: DashBoard
   },
@@ -61,11 +67,11 @@ router.beforeEach((to) => {
   const isPublicAuthRoute = to.path === '/login' || to.path === '/register'
 
   if (!isPublicAuthRoute && !hasToken) {
-    return { path: '/login' }
+    return { path: '/' }
   }
 
   if (isPublicAuthRoute && hasToken) {
-    return { path: '/' }
+    return { path: '/dashboard' }
   }
 })
 
