@@ -20,7 +20,7 @@ const onSubmit = async () => {
 
 	try {
 		await authStore.login(form.email, form.password)
-		router.push('/')
+		router.push('/dashboard')
 	} catch (error) {
 		errorMessage.value =
 			error?.detail ||

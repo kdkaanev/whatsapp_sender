@@ -6,7 +6,7 @@ const route = useRoute()
 const isOpen = ref(false)
 
 const menuItems = [
-  { to: '/', label: 'Dashboard' },
+  { to: '/dashboard', label: 'Dashboard' },
   { to: '/contacts', label: 'Contacts' },
   { to: '/campaigns', label: 'Campaigns' },
   { to: '/messages', label: 'Messages' },

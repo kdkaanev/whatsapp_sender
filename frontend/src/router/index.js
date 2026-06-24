@@ -12,7 +12,7 @@ import LandingPage from '../pages/LandingPage.vue'
 const routes = [
   {
     path: '/',
-    name: 'LandingPage',
+    name: 'Landing',
     component: LandingPage
   },
   {
@@ -64,13 +64,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const hasToken = Boolean(localStorage.getItem('access_token'))
-  const isPublicAuthRoute = to.path === '/login' || to.path === '/register'
+  const isPublicRoute = to.path === '/' || to.path === '/login' || to.path === '/register'
 
-  if (!isPublicAuthRoute && !hasToken) {
+  if (!isPublicRoute && !hasToken) {
     return { path: '/' }
   }
 
-  if (isPublicAuthRoute && hasToken) {
+  if (to.path === '/' && hasToken) {
     return { path: '/dashboard' }
   }
 })

@@ -7,8 +7,8 @@ const route = useRoute()
 const router = useRouter()
 
 const isActive = (path) => {
-    if (path === '/') {
-        return route.path === '/'
+    if (path === '/dashboard') {
+        return route.path === '/dashboard'
     }
 
     return route.path === path || route.path.startsWith(`${path}/`)
@@ -16,7 +16,7 @@ const isActive = (path) => {
 
 const logout = () => {
     authStore.logout()
-    router.push('/login')
+    router.push('/')
 }
 </script>
 
@@ -26,11 +26,11 @@ const logout = () => {
             <ul class="nav-list">
                 <li>
                     <RouterLink
-                        to="/"
+                        to="/dashboard"
                         class="nav-item"
-                        :class="{ 'is-active': isActive('/') }"
+                        :class="{ 'is-active': isActive('/dashboard') }"
                         aria-label="Dashboard"
-                        :aria-current="isActive('/') ? 'page' : undefined"
+                        :aria-current="isActive('/dashboard') ? 'page' : undefined"
                     >
                         <span class="nav-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none">

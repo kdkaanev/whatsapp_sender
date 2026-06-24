@@ -6,17 +6,19 @@ import SideBar from './components/SideBar.vue'
 import TopBar from './components/TopBar.vue'
 
 const route = useRoute()
-const isAuthPage = computed(() => route.path === '/login' || route.path === '/register')
+const isMinimalLayout = computed(() => {
+  return route.path === '/' || route.path === '/login' || route.path === '/register'
+})
 </script>
 
 <template>
   <div class="app-shell">
-    <TopBar v-if="!isAuthPage" />
+    <TopBar v-if="!isMinimalLayout" />
 
     <div class="app-layout">
-      <SideBar v-if="!isAuthPage" />
+      <SideBar v-if="!isMinimalLayout" />
 
-      <main class="main-content" :class="{ 'main-content--auth': isAuthPage }">
+      <main class="main-content" :class="{ 'main-content--auth': isMinimalLayout }">
         <RouterView />
       </main>
     </div>
