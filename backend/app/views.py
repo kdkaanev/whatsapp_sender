@@ -31,7 +31,16 @@ class ContactListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Contact.objects.filter(user=self.request.user)
+        queryset = Contact.objects.filter(user=self.request.user).order_by('-created_at')
+        search = self.request.query_params.get('search')
+        tag = self.request.query_params.get('tag')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(phone_number__icontains=search)
+            )
+        if tag:
+            queryset = queryset.filter(tags__contains=[tag])
+        return queryset
 
 
 class ContactDetailView(generics.RetrieveUpdateDestroyAPIView):

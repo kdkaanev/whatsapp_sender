@@ -9,6 +9,8 @@ class Contact(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=20)
+    tags = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({self.phone_number})"

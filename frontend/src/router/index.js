@@ -5,6 +5,7 @@ import CampainsPage from '../pages/CampainsPage.vue'
 import MessagesPage from '../pages/MessagesPage.vue'
 import TemplatesPage from '../pages/TemplatesPage.vue'
 import Settings from '../pages/Settings.vue'
+import LogIn from '../components/LogIn.vue'
 
 const routes = [
   {
@@ -33,6 +34,11 @@ const routes = [
     component: TemplatesPage
   },
   {
+    path: '/login',
+    name: 'Login',
+    component: LogIn
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: Settings
@@ -42,6 +48,18 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to) => {
+  const hasToken = Boolean(localStorage.getItem('access_token'))
+
+  if (to.path !== '/login' && !hasToken) {
+    return { path: '/login' }
+  }
+
+  if (to.path === '/login' && hasToken) {
+    return { path: '/' }
+  }
 })
 
 export default router

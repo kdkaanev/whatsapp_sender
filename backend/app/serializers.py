@@ -5,8 +5,8 @@ from .models import Contact, Campain, Message, Template, WebhookEvent
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ('id', 'name', 'email', 'phone_number', 'user')
-        read_only_fields = ('id', 'user')
+        fields = ('id', 'name', 'email', 'phone_number', 'tags', 'created_at', 'user')
+        read_only_fields = ('id', 'user', 'created_at')
 
 
 class CampainSerializer(serializers.ModelSerializer):

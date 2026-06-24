@@ -27,10 +27,11 @@ export const useAuthStore = defineStore('auth', () => {
         email,
         password,
       })
-      accessToken.value = response.data.access
-      refreshToken.value = response.data.refresh
-      localStorage.setItem('access_token', response.data.access)
-      localStorage.setItem('refresh_token', response.data.refresh)
+      console.log('Login response:', response.data) // Log the response data for debugging
+      accessToken.value = response.data.tokens.access
+      refreshToken.value = response.data.tokens.refresh
+      localStorage.setItem('access_token', response.data.tokens.access)
+      localStorage.setItem('refresh_token', response.data.tokens.refresh)
       await getProfile()
       return response.data
     } catch (error) {

@@ -7,11 +7,14 @@ export const useContactStore = defineStore('contacts', () => {
   const loading = ref(false)
   const error = ref(null)
 
-  const getContacts = async () => {
+  const getContacts = async ({ search = '', tag = '' } = {}) => {
     loading.value = true
     error.value = null
     try {
-      const response = await api.get('/contacts/')
+      const params = {}
+      if (search) params.search = search
+      if (tag) params.tag = tag
+      const response = await api.get('/contacts/', { params })
       contacts.value = response.data
     } catch (err) {
       error.value = err.message
