@@ -363,7 +363,9 @@ const copyToClipboard = (text) => {
     copyTimer = setTimeout(() => {
       justCopied.value = false
     }, 2000)
-  }).catch(() => {})
+  }).catch((err) => {
+    console.error('Failed to copy to clipboard:', err)
+  })
 }
 
 onUnmounted(() => clearTimeout(copyTimer))
@@ -494,7 +496,7 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
 
         <div class="conv-footer">
           <p class="conv-showing">
-            Showing {{ showingFrom }} to {{ showingTo }} of {{ totalMessages.toLocaleString() }} messages
+            Showing {{ showingFrom }} to {{ showingTo }} of {{ totalCount.toLocaleString() }} messages
           </p>
           <div class="pagination">
             <button
