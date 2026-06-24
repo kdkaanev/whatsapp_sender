@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch, onUnmounted } from 'vue'
 
 // ── Mock conversations ───────────────────────────────────────────────────────
 const allConversations = ref([
@@ -244,8 +244,13 @@ const messageText = ref('')
 const selectedConversation = ref(allConversations.value[0])
 const currentPage = ref(1)
 const pageSize = 8
+// totalMessages represents the full server-side count for the "All Messages" view
 const totalMessages = 1245
 const chatScrollRef = ref(null)
+const justCopied = ref(false)
+let copyTimer = null
+
+const dateRange = ref('25 May – 25 Jun 2026')
 
 const tabs = ['All Messages', 'Sent', 'Delivered', 'Read', 'Failed']
 
@@ -264,7 +269,15 @@ const filteredConversations = computed(() => {
   return list
 })
 
-const totalPages = computed(() => Math.ceil(totalMessages / pageSize))
+// totalCount: use the server-side mock total for "All Messages" without a search,
+// otherwise reflect the locally filtered count so the footer stays accurate.
+const totalCount = computed(() =>
+  activeTab.value === 'All Messages' && !searchQuery.value
+    ? totalMessages
+    : filteredConversations.value.length,
+)
+
+const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 
 const pageNumbers = computed(() => {
   const total = totalPages.value
@@ -278,8 +291,10 @@ const pageNumbers = computed(() => {
   return pages
 })
 
-const showingFrom = computed(() => (currentPage.value - 1) * pageSize + 1)
-const showingTo = computed(() => Math.min(currentPage.value * pageSize, totalMessages))
+const showingFrom = computed(() =>
+  totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize + 1,
+)
+const showingTo = computed(() => Math.min(currentPage.value * pageSize, totalCount.value))
 
 // ── Methods ──────────────────────────────────────────────────────────────────
 const setTab = (tab) => {
@@ -342,8 +357,16 @@ const handleKeydown = (e) => {
 }
 
 const copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).catch(() => {})
+  navigator.clipboard.writeText(text).then(() => {
+    justCopied.value = true
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
+      justCopied.value = false
+    }, 2000)
+  }).catch(() => {})
 }
+
+onUnmounted(() => clearTimeout(copyTimer))
 
 watch(selectedConversation, () => scrollToBottom(), { immediate: true })
 </script>
@@ -402,7 +425,7 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
           <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
         </svg>
-        25 May – 25 Jun 2026
+        {{ dateRange }}
         <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
@@ -515,7 +538,7 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
       </div>
 
       <!-- Middle: Chat view -->
-      <div class="chat-panel" v-if="selectedConversation">
+      <div v-if="selectedConversation" class="chat-panel">
         <!-- Chat header -->
         <div class="chat-header">
           <div class="chat-header-left">
@@ -531,7 +554,7 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
             <span class="conv-status" :class="statusClass(selectedConversation.status)">
               {{ selectedConversation.status }}
             </span>
-            <span class="chat-date">{{ selectedConversation.date }}  {{ selectedConversation.time }}</span>
+            <span class="chat-date">{{ selectedConversation.date }} {{ selectedConversation.time }}</span>
           </div>
         </div>
 
@@ -622,7 +645,7 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
       </div>
 
       <!-- Right: Details panel -->
-      <div class="details-panel" v-if="selectedConversation">
+      <div v-if="selectedConversation" class="details-panel">
         <!-- Contact Details -->
         <div class="details-section">
           <div class="details-section-header">
@@ -742,13 +765,17 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
                 <span class="details-value msg-id">{{ selectedConversation.messageId }}</span>
                 <button
                   class="btn-copy"
+                  :class="{ 'btn-copy--done': justCopied }"
                   type="button"
-                  aria-label="Copy message ID"
+                  :aria-label="justCopied ? 'Copied!' : 'Copy message ID'"
                   @click="copyToClipboard(selectedConversation.messageId)"
                 >
-                  <svg viewBox="0 0 24 24" fill="none">
+                  <svg v-if="!justCopied" viewBox="0 0 24 24" fill="none">
                     <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none">
+                    <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
               </div>
@@ -1732,6 +1759,10 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
 }
 
 .btn-copy:hover {
+  color: #1b9a5d;
+}
+
+.btn-copy--done {
   color: #1b9a5d;
 }
 
