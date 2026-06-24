@@ -3,8 +3,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useContactStore } from '../stores/contacts'
+import { useAuthStore } from '../stores/auth'
 
 const contactStore = useContactStore()
+const authStore = useAuthStore()
 
 // Search & filter state
 const searchQuery = ref('')
@@ -24,6 +26,7 @@ const csvInputRef = ref(null)
 // Load contacts on mount
 onMounted(() => {
   contactStore.getContacts({ search: searchQuery.value, tag: selectedTag.value })
+  authStore.getProfile()
 })
 
 // Reset page when search/filter changes
