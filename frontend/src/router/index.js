@@ -6,6 +6,7 @@ import MessagesPage from '../pages/MessagesPage.vue'
 import TemplatesPage from '../pages/TemplatesPage.vue'
 import Settings from '../pages/Settings.vue'
 import LogIn from '../components/LogIn.vue'
+import RegisterPage from '../pages/RegisterPage.vue'
 
 const routes = [
   {
@@ -39,6 +40,11 @@ const routes = [
     component: LogIn
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: RegisterPage
+  },
+  {
     path: '/settings',
     name: 'Settings',
     component: Settings
@@ -52,12 +58,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const hasToken = Boolean(localStorage.getItem('access_token'))
+  const isPublicAuthRoute = to.path === '/login' || to.path === '/register'
 
-  if (to.path !== '/login' && !hasToken) {
+  if (!isPublicAuthRoute && !hasToken) {
     return { path: '/login' }
   }
 
-  if (to.path === '/login' && hasToken) {
+  if (isPublicAuthRoute && hasToken) {
     return { path: '/' }
   }
 })

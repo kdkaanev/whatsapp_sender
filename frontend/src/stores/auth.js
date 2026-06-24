@@ -9,11 +9,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value)
 
-  const register = async (email, password) => {
+  const register = async (email, password, passwordConfirm) => {
     try {
       const response = await api.post('/auth/register/', {
         email,
         password,
+        password_confirm: passwordConfirm,
       })
       return response.data
     } catch (error) {

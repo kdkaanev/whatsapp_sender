@@ -6,7 +6,7 @@ import SideBar from './components/SideBar.vue'
 import TopBar from './components/TopBar.vue'
 
 const route = useRoute()
-const isAuthPage = computed(() => route.path === '/login')
+const isAuthPage = computed(() => route.path === '/login' || route.path === '/register')
 </script>
 
 <template>

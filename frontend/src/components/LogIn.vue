@@ -64,6 +64,11 @@ const onSubmit = async () => {
 				{{ isLoading ? 'Signing in...' : 'Login' }}
 			</button>
 		</form>
+
+		<p class="auth-link">
+			Don't have an account?
+			<RouterLink to="/register">Register</RouterLink>
+		</p>
 	</section>
 </template>
 
@@ -131,5 +136,21 @@ button:disabled {
 	margin: 4px 0 0;
 	color: #c0392b;
 	font-size: 14px;
+}
+
+.auth-link {
+	margin: 14px 0 0;
+	color: #5e5a69;
+	font-size: 14px;
+}
+
+.auth-link a {
+	color: #2563eb;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.auth-link a:hover {
+	text-decoration: underline;
 }
 </style>
