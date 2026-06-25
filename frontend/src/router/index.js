@@ -9,6 +9,7 @@ import LogIn from '../components/LogIn.vue'
 import RegisterPage from '../pages/RegisterPage.vue'
 import LandingPage from '../pages/LandingPage.vue'
 import CreateContact from '../components/CreateContactss.vue'
+import CreateCampaign from '../components/CreateCampaign.vue'
 
 const routes = [
   {
@@ -61,7 +62,13 @@ const routes = [
     path: '/create-contact',
     name: 'CreateContact',
     component: CreateContact
+  },
+  {
+    path: '/create-campaign',
+    name: 'CreateCampaign',
+    component: CreateCampaign
   }
+
 ]
 
 const router = createRouter({

@@ -1,11 +1,21 @@
 <script setup>
 import { computed, ref } from 'vue'
+import router from '../router'
+import {onMounted} from 'vue'
+
+import { useCampaignStore } from '../stores/campaigns'
+
+const campaignStore = useCampaignStore()
 
 const searchTerm = ref('')
 const activeTab = ref('All Campaigns')
 const selectedDateRange = ref('25 May – 25 Jun 2026')
 const currentPage = ref(1)
 const pageSize = 8
+
+onMounted(() => {
+  campaignStore.getCampaigns()
+})
 
 const summaryCards = [
   {
@@ -46,7 +56,9 @@ const summaryCards = [
 ]
 
 const filterTabs = ['All Campaigns', 'Sent', 'Scheduled', 'Drafts', 'Failed']
-
+function realCampains() {
+  return campaignStore.campaigns
+}
 const campaigns = [
   {
     name: 'Summer Promo 2026',
@@ -407,7 +419,7 @@ const progressWidth = (value) => ({
           <span class="notification-badge">3</span>
         </button>
 
-        <button class="primary-button" type="button">
+        <button @click="router.push({ name: 'CreateCampaign' })" class="primary-button" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 5v14" />
             <path d="M5 12h14" />
@@ -516,6 +528,16 @@ const progressWidth = (value) => ({
               <th>Actions</th>
             </tr>
           </thead>
+          <tbody>
+            <tr v-for="camp in realCampains" :key="camp.name">
+              <td class="campaign-name-cell">
+                <strong>{{ camp.name }}</strong>
+                <span>{{ camp.description }}</span>
+              </td>
+              </tr>
+              
+      
+          </tbody>
 
           <tbody>
             <tr v-for="campaign in visibleCampaigns" :key="campaign.name">
