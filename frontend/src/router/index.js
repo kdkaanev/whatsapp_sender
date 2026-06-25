@@ -8,6 +8,7 @@ import Settings from '../pages/Settings.vue'
 import LogIn from '../components/LogIn.vue'
 import RegisterPage from '../pages/RegisterPage.vue'
 import LandingPage from '../pages/LandingPage.vue'
+import CreateContact from '../components/CreateContactss.vue'
 
 const routes = [
   {
@@ -54,6 +55,12 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: Settings
+  }
+  ,
+  {
+    path: '/create-contact',
+    name: 'CreateContact',
+    component: CreateContact
   }
 ]
 

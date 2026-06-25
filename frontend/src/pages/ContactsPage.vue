@@ -4,6 +4,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useContactStore } from '../stores/contacts'
 import { useAuthStore } from '../stores/auth'
+import CreateContacts from '../components/CreateContactss.vue'
+import router from '../router/index.js'
 
 const contactStore = useContactStore()
 const authStore = useAuthStore()
@@ -25,6 +27,7 @@ const csvInputRef = ref(null)
 
 // Load contacts on mount
 onMounted(() => {
+  contactStore.showAllContacts()
   contactStore.getContacts({ search: searchQuery.value, tag: selectedTag.value })
   authStore.getProfile()
 })
@@ -167,6 +170,12 @@ const onCSVFileChange = async (event) => {
   await contactStore.importContacts(file)
   event.target.value = ''
 }
+
+const addContact = () => {
+  router.push({ name: 'CreateContact' })
+}
+
+
 </script>
 
 <template>
@@ -190,7 +199,7 @@ const onCSVFileChange = async (event) => {
           class="hidden-input"
           @change="onCSVFileChange"
         />
-        <button class="btn-primary" type="button">
+        <button @click="addContact" class="btn-primary" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 5v14" />
             <path d="M5 12h14" />

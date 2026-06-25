@@ -24,6 +24,20 @@ export const useContactStore = defineStore('contacts', () => {
     }
   }
 
+  const showAllContacts = async () => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.get('/contacts/')
+      contacts.value = response.data
+    } catch (err) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   const createContact = async (contactData) => {
     try {
       const response = await api.post('/contacts/create/', contactData)
@@ -85,5 +99,6 @@ export const useContactStore = defineStore('contacts', () => {
     updateContact,
     deleteContact,
     importContacts,
+    showAllContacts
   }
 })

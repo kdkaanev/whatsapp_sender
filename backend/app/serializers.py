@@ -3,9 +3,10 @@ from .models import Contact, Campain, Message, Template, WebhookEvent
 
 
 class ContactSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(source='phone_number')
     class Meta:
         model = Contact
-        fields = ('id', 'name', 'email', 'phone_number', 'tags', 'created_at', 'user')
+        fields = ('id', 'name', 'email', 'phone', 'tags', 'created_at', 'user')
         read_only_fields = ('id', 'user', 'created_at')
 
 
