@@ -1,7 +1,7 @@
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from django.conf import settings
-from app.models import Message
+from app.models import Message, Contact
 import logging
 
 logger = logging.getLogger(__name__)
@@ -63,9 +63,9 @@ class TwilioService:
 
     def send_campaign_sms(self, campaign, message_template):
         """
-        Send SMS to all contacts in a campaign
+        Send SMS to all contacts belonging to the campaign's user
         """
-        contacts = campaign.contact_set.all()
+        contacts = Contact.objects.filter(user=campaign.user)
         results = {
             'successful': [],
             'failed': []
@@ -73,13 +73,13 @@ class TwilioService:
 
         for contact in contacts:
             result = self.send_sms(contact.phone_number, message_template)
-            
+
             if result['success']:
                 Message.objects.create(
                     campain=campaign,
                     contact=contact,
                     status='sent',
-                    send_at=None
+                    message_sid=result['message_sid'],
                 )
                 results['successful'].append({
                     'contact': contact.name,
@@ -90,7 +90,8 @@ class TwilioService:
                 Message.objects.create(
                     campain=campaign,
                     contact=contact,
-                    status='failed'
+                    status='failed',
+                    error_message=result.get('error'),
                 )
                 results['failed'].append({
                     'contact': contact.name,
@@ -102,9 +103,9 @@ class TwilioService:
 
     def send_campaign_whatsapp(self, campaign, message_template):
         """
-        Send WhatsApp to all contacts in a campaign
+        Send WhatsApp to all contacts belonging to the campaign's user
         """
-        contacts = campaign.contact_set.all()
+        contacts = Contact.objects.filter(user=campaign.user)
         results = {
             'successful': [],
             'failed': []
@@ -112,13 +113,13 @@ class TwilioService:
 
         for contact in contacts:
             result = self.send_whatsapp(contact.phone_number, message_template)
-            
+
             if result['success']:
                 Message.objects.create(
                     campain=campaign,
                     contact=contact,
                     status='sent',
-                    send_at=None
+                    message_sid=result['message_sid'],
                 )
                 results['successful'].append({
                     'contact': contact.name,
@@ -129,7 +130,8 @@ class TwilioService:
                 Message.objects.create(
                     campain=campaign,
                     contact=contact,
-                    status='failed'
+                    status='failed',
+                    error_message=result.get('error'),
                 )
                 results['failed'].append({
                     'contact': contact.name,

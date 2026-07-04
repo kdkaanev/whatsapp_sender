@@ -34,7 +34,33 @@ export const useCampaignStore = defineStore('campaigns', () => {
   const createCampaign = async (campaignData) => {
     try {
       const response = await api.post('/campaigns/create/', campaignData)
-      campaigns.value.push(response.data)
+      campaigns.value.push(response.data.campaign)
+      return response.data.campaign
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  const updateCampaign = async (campaignId, campaignData) => {
+    try {
+      const response = await api.patch(`/campaigns/${campaignId}/`, campaignData)
+      const updatedCampaign = response.data.campaign
+
+      campaigns.value = campaigns.value.map((campaign) =>
+        campaign.id === campaignId ? updatedCampaign : campaign
+      )
+
+      return updatedCampaign
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  }
+
+  const sendSMS = async (campaignId, messageBody) => {
+    try {
+      const response = await api.post(`/campaigns/${campaignId}/send-sms/`, { message: messageBody })
       return response.data
     } catch (err) {
       error.value = err.message
@@ -42,19 +68,9 @@ export const useCampaignStore = defineStore('campaigns', () => {
     }
   }
 
-  const sendSMS = async (campaignId) => {
+  const sendWhatsApp = async (campaignId, messageBody) => {
     try {
-      const response = await api.post(`/campaigns/${campaignId}/send-sms/`)
-      return response.data
-    } catch (err) {
-      error.value = err.message
-      throw err
-    }
-  }
-
-  const sendWhatsApp = async (campaignId) => {
-    try {
-      const response = await api.post(`/campaigns/${campaignId}/send-whatsapp/`)
+      const response = await api.post(`/campaigns/${campaignId}/send-whatsapp/`, { message: messageBody })
       return response.data
     } catch (err) {
       error.value = err.message
@@ -99,6 +115,7 @@ export const useCampaignStore = defineStore('campaigns', () => {
     getCampaigns,
     getCampaign,
     createCampaign,
+    updateCampaign,
     sendSMS,
     sendWhatsApp,
     getStatistics,

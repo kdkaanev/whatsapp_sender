@@ -13,15 +13,15 @@ class ContactSerializer(serializers.ModelSerializer):
 class CampainSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campain
-        fields = ('id', 'name', 'description', 'user')
-        read_only_fields = ('id', 'user')
+        fields = ('id', 'name', 'description', 'user', 'status', 'created_at')
+        read_only_fields = ('id', 'user', 'created_at')
 
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ('id', 'campain', 'contact', 'status', 'send_at')
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class TemplateSerializer(serializers.ModelSerializer):

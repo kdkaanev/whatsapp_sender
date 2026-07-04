@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import router from '../router'
-import {onMounted} from 'vue'
 
 import { useCampaignStore } from '../stores/campaigns'
 
@@ -12,6 +11,17 @@ const activeTab = ref('All Campaigns')
 const selectedDateRange = ref('25 May – 25 Jun 2026')
 const currentPage = ref(1)
 const pageSize = 8
+const selectedCampaign = ref(null)
+const campaignForm = ref({
+  name: '',
+  description: '',
+  status: 'draft',
+  messageBody: '',
+})
+const modalError = ref('')
+const modalMessage = ref('')
+const isSavingCampaign = ref(false)
+const isSendingCampaign = ref(false)
 
 onMounted(() => {
   campaignStore.getCampaigns()
@@ -56,10 +66,8 @@ const summaryCards = [
 ]
 
 const filterTabs = ['All Campaigns', 'Sent', 'Scheduled', 'Drafts', 'Failed']
-function realCampains() {
-  return campaignStore.campaigns
-}
-const campaigns = [
+
+const fallbackCampaigns = [
   {
     name: 'Summer Promo 2026',
     preview: 'Здравейте {{name}}, Имаме специална оферта за вас...',
@@ -322,15 +330,70 @@ const statusFilterMap = {
   Failed: (campaign) => campaign.status === 'Failed',
 }
 
+const normalizeStatus = (status) => {
+  if (!status) {
+    return 'Draft'
+  }
+
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+}
+
+const formatCampaignDate = (value) => {
+  if (!value) {
+    return ' - '
+  }
+
+  if (typeof value === 'string' && value.includes('.') && value.includes(':')) {
+    return value
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('bg-BG', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+const normalizeCampaign = (campaign) => ({
+  ...campaign,
+  description: campaign.description ?? campaign.preview ?? '',
+  preview: campaign.preview ?? campaign.description ?? '',
+  recipients: campaign.recipients ?? 0,
+  status: normalizeStatus(campaign.status),
+  sent: campaign.sent ?? null,
+  deliveredCount: campaign.deliveredCount ?? null,
+  deliveredRate: campaign.deliveredRate ?? null,
+  readCount: campaign.readCount ?? null,
+  readRate: campaign.readRate ?? null,
+  failedCount: campaign.failedCount ?? null,
+  failedRate: campaign.failedRate ?? null,
+  createdAt: formatCampaignDate(campaign.createdAt ?? campaign.created_at),
+})
+
+const campaignSource = computed(() =>
+  campaignStore.campaigns.length > 0 ? campaignStore.campaigns : fallbackCampaigns
+)
+
+const normalizedCampaigns = computed(() => campaignSource.value.map(normalizeCampaign))
+
 const filteredCampaigns = computed(() => {
   const query = searchTerm.value.trim().toLowerCase()
   const matchesTab = statusFilterMap[activeTab.value] ?? statusFilterMap['All Campaigns']
 
-  return campaigns.filter((campaign) => {
+  return normalizedCampaigns.value.filter((campaign) => {
     const matchesSearch =
       query === '' ||
       campaign.name.toLowerCase().includes(query) ||
-      campaign.preview.toLowerCase().includes(query)
+      campaign.preview.toLowerCase().includes(query) ||
+      campaign.description.toLowerCase().includes(query)
 
     return matchesSearch && matchesTab(campaign)
   })
@@ -390,6 +453,81 @@ const statusClass = (status) => `status--${status.toLowerCase()}`
 const progressWidth = (value) => ({
   width: `${Math.max(0, Math.min(value ?? 0, 100))}%`,
 })
+
+const openCampaignModal = (campaign) => {
+  selectedCampaign.value = campaign
+  campaignForm.value = {
+    name: campaign.name ?? '',
+    description: campaign.description ?? campaign.preview ?? '',
+    status: (campaign.status ?? 'draft').toLowerCase(),
+    messageBody: campaign.description ?? campaign.preview ?? '',
+  }
+  modalError.value = ''
+  modalMessage.value = ''
+}
+
+const closeCampaignModal = () => {
+  selectedCampaign.value = null
+  modalError.value = ''
+  modalMessage.value = ''
+}
+
+const saveCampaign = async () => {
+  if (!selectedCampaign.value?.id) {
+    modalError.value = 'Campaigns from the fallback demo list cannot be saved.'
+    return
+  }
+
+  isSavingCampaign.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    const updatedCampaign = await campaignStore.updateCampaign(selectedCampaign.value.id, {
+      name: campaignForm.value.name,
+      description: campaignForm.value.description,
+      status: campaignForm.value.status,
+    })
+
+    selectedCampaign.value = normalizeCampaign(updatedCampaign)
+    campaignForm.value = {
+      name: updatedCampaign.name ?? '',
+      description: updatedCampaign.description ?? '',
+      status: (updatedCampaign.status ?? 'draft').toLowerCase(),
+    }
+    modalMessage.value = 'Campaign updated successfully.'
+    await campaignStore.getCampaigns()
+  } catch (error) {
+    modalError.value = error.response?.data?.message ?? error.message ?? 'Unable to update campaign.'
+  } finally {
+    isSavingCampaign.value = false
+  }
+}
+
+const sendSelectedCampaign = async () => {
+  if (!selectedCampaign.value?.id) {
+    modalError.value = 'Campaigns from the fallback demo list cannot be sent.'
+    return
+  }
+
+  if (!campaignForm.value.messageBody.trim()) {
+    modalError.value = 'Message body is required before sending.'
+    return
+  }
+
+  isSendingCampaign.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    const response = await campaignStore.sendWhatsApp(selectedCampaign.value.id, campaignForm.value.messageBody)
+    modalMessage.value = response.message ?? 'Campaign send started.'
+  } catch (error) {
+    modalError.value = error.response?.data?.error ?? error.message ?? 'Unable to send campaign.'
+  } finally {
+    isSendingCampaign.value = false
+  }
+}
 </script>
 
 <template>
@@ -529,18 +667,12 @@ const progressWidth = (value) => ({
             </tr>
           </thead>
           <tbody>
-            <tr v-for="camp in realCampains" :key="camp.name">
-              <td class="campaign-name-cell">
-                <strong>{{ camp.name }}</strong>
-                <span>{{ camp.description }}</span>
-              </td>
-              </tr>
-              
-      
-          </tbody>
-
-          <tbody>
-            <tr v-for="campaign in visibleCampaigns" :key="campaign.name">
+            <tr
+              v-for="campaign in visibleCampaigns"
+              :key="campaign.id ?? campaign.name"
+              class="campaign-row"
+              @click="openCampaignModal(campaign)"
+            >
               <td class="campaign-name-cell">
                 <strong>{{ campaign.name }}</strong>
                 <span>{{ campaign.preview }}</span>
@@ -579,22 +711,25 @@ const progressWidth = (value) => ({
               <td>{{ campaign.createdAt }}</td>
               <td>
                 <div class="row-actions">
-                  <button class="table-icon-button" type="button" aria-label="View analytics">
+                  <button
+                    class="table-icon-button"
+                    type="button"
+                    aria-label="View campaign details"
+                    @click.stop="openCampaignModal(campaign)"
+                  >
                     <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M5 19V9" />
-                      <path d="M10 19V5" />
-                      <path d="M15 19v-7" />
-                      <path d="M20 19V12" />
-                      <path d="M4 19h17" />
+                      <rect x="4.5" y="4.5" width="15" height="15" rx="3" />
+                      <path d="M8 11h8" />
+                      <path d="M8 15h5" />
                     </svg>
                   </button>
-                  <button class="table-icon-button" type="button" aria-label="Duplicate campaign">
+                  <button class="table-icon-button" type="button" aria-label="Duplicate campaign" @click.stop>
                     <svg viewBox="0 0 24 24" fill="none">
                       <rect x="9" y="7" width="10" height="12" rx="2" />
                       <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
                     </svg>
                   </button>
-                  <button class="table-icon-button" type="button" aria-label="More options">
+                  <button class="table-icon-button" type="button" aria-label="More options" @click.stop>
                     <svg viewBox="0 0 24 24" fill="none">
                       <circle cx="12" cy="5" r="1" fill="currentColor" />
                       <circle cx="12" cy="12" r="1" fill="currentColor" />
@@ -655,6 +790,68 @@ const progressWidth = (value) => ({
         </div>
       </footer>
     </section>
+
+    <div v-if="selectedCampaign" class="campaign-modal-backdrop" @click.self="closeCampaignModal">
+      <section class="campaign-modal" role="dialog" aria-modal="true" :aria-label="selectedCampaign.name">
+        <header class="campaign-modal__header">
+          <div>
+            <p class="campaign-modal__eyebrow">Campaign details</p>
+            <h2 class="campaign-modal__title">{{ selectedCampaign.name }}</h2>
+          </div>
+
+          <button class="modal-close-button" type="button" aria-label="Close modal" @click="closeCampaignModal">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="m7 7 10 10" />
+              <path d="m17 7-10 10" />
+            </svg>
+          </button>
+        </header>
+
+        <form class="campaign-modal__form" @submit.prevent="saveCampaign">
+          <label class="modal-field">
+            <span>Name</span>
+            <input v-model="campaignForm.name" type="text" />
+          </label>
+
+          <label class="modal-field">
+            <span>Status</span>
+            <select v-model="campaignForm.status">
+              <option value="draft">Draft</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="sent">Sent</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+            </select>
+          </label>
+
+          <label class="modal-field modal-field--full">
+            <span>Description</span>
+            <textarea v-model="campaignForm.description" rows="4"></textarea>
+          </label>
+
+          <label class="modal-field modal-field--full">
+            <span>Message body <em class="modal-field__hint">(sent to contacts)</em></span>
+            <textarea v-model="campaignForm.messageBody" rows="4" placeholder="Enter the message that will be sent to contacts..."></textarea>
+          </label>
+
+          <div v-if="modalError || modalMessage" class="modal-feedback" :class="{ 'is-error': modalError }">
+            {{ modalError || modalMessage }}
+          </div>
+
+          <div class="modal-actions">
+            <button class="secondary-button" type="button" @click="closeCampaignModal">
+              Cancel
+            </button>
+            <button class="secondary-button" type="button" :disabled="isSendingCampaign || !selectedCampaign.id" @click="sendSelectedCampaign">
+              {{ isSendingCampaign ? 'Sending...' : 'Send' }}
+            </button>
+            <button class="primary-button" type="submit" :disabled="isSavingCampaign || !selectedCampaign.id">
+              {{ isSavingCampaign ? 'Saving...' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -968,6 +1165,15 @@ const progressWidth = (value) => ({
   font-size: 0.92rem;
 }
 
+.campaign-row {
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.campaign-row:hover {
+  background: #f8fafc;
+}
+
 .campaign-name-cell {
   min-width: 220px;
 }
@@ -1104,6 +1310,157 @@ const progressWidth = (value) => ({
   cursor: not-allowed;
 }
 
+.campaign-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(8px);
+}
+
+.campaign-modal {
+  width: min(640px, 100%);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+}
+
+.campaign-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.campaign-modal__eyebrow {
+  margin: 0 0 6px;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.campaign-modal__title {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.modal-close-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.campaign-modal__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+}
+
+.modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.modal-field--full {
+  grid-column: 1 / -1;
+}
+
+.modal-field span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  padding: 12px 14px;
+  font: inherit;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.modal-field textarea {
+  resize: vertical;
+  min-height: 132px;
+}
+
+.modal-field input:focus,
+.modal-field select:focus,
+.modal-field textarea:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+
+.modal-field__hint {
+  font-style: normal;
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.modal-feedback {
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+
+.modal-feedback.is-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.modal-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+  flex-wrap: wrap;
+}
+
+.modal-actions .secondary-button:disabled,
+.modal-actions .primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1380px) {
   .stats-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1144,6 +1501,20 @@ const progressWidth = (value) => ({
 
   .table-footer {
     align-items: stretch;
+  }
+
+  .campaign-modal__form {
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-modal__header,
+  .campaign-modal__form {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .campaign-modal-backdrop {
+    padding: 16px;
   }
 }
 </style>
