@@ -129,7 +129,7 @@ const emit = defineEmits([
               />
             </td>
             <td class="col-name">{{ contact.name }}</td>
-            <td class="col-phone">{{ contact.phone_number }}</td>
+            <td class="col-phone">{{ contact.phone }}</td>
             <td class="col-tags">
               <span
                 v-for="tag in contact.tags"
