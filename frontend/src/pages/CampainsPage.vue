@@ -23,305 +23,11 @@ const modalMessage = ref('')
 const isSavingCampaign = ref(false)
 const isSendingCampaign = ref(false)
 const isDeletingCampaign = ref(false)
-
-onMounted(() => {
-  campaignStore.getCampaigns()
-})
-
-const summaryCards = [
-  {
-    label: 'Total Campaigns',
-    value: '18',
-    detail: '+2 this week',
-    color: 'green',
-    icon: 'campaigns',
-  },
-  {
-    label: 'Sent',
-    value: '5,420',
-    detail: '+820 this week',
-    color: 'blue',
-    icon: 'sent',
-  },
-  {
-    label: 'Delivered',
-    value: '5,182',
-    detail: '95.6% delivery rate',
-    color: 'purple',
-    icon: 'delivered',
-  },
-  {
-    label: 'Read',
-    value: '3,980',
-    detail: '73.2% read rate',
-    color: 'amber',
-    icon: 'read',
-  },
-  {
-    label: 'Failed',
-    value: '238',
-    detail: '4.4% failed rate',
-    color: 'red',
-    icon: 'failed',
-  },
-]
+const isPageLoading = ref(false)
+const pageError = ref('')
+const campaignStatsById = ref({})
 
 const filterTabs = ['All Campaigns', 'Sent', 'Scheduled', 'Drafts', 'Failed']
-
-const fallbackCampaigns = [
-  {
-    name: 'Summer Promo 2026',
-    preview: 'Здравейте {{name}}, Имаме специална оферта за вас...',
-    recipients: 520,
-    status: 'Sent',
-    sent: 520,
-    deliveredCount: 508,
-    deliveredRate: 97.7,
-    readCount: 410,
-    readRate: 78.8,
-    failedCount: 12,
-    failedRate: 2.3,
-    createdAt: '24.06.2026 10:15',
-  },
-  {
-    name: 'Black Friday Offer',
-    preview: 'Само този петък – специални отстъпки до 70%...',
-    recipients: 1200,
-    status: 'Delivered',
-    sent: 1200,
-    deliveredCount: 1164,
-    deliveredRate: 97,
-    readCount: 875,
-    readRate: 72.9,
-    failedCount: 36,
-    failedRate: 3,
-    createdAt: '21.06.2026 09:30',
-  },
-  {
-    name: 'VIP Customers',
-    preview: 'Специално за вас, нашите VIP клиенти...',
-    recipients: 312,
-    status: 'Scheduled',
-    sent: null,
-    deliveredCount: null,
-    deliveredRate: null,
-    readCount: null,
-    readRate: null,
-    failedCount: null,
-    failedRate: null,
-    createdAt: '25.06.2026 09:00',
-  },
-  {
-    name: 'New Collection',
-    preview: 'Разгледайте нашата нова колекция...',
-    recipients: 450,
-    status: 'Draft',
-    sent: null,
-    deliveredCount: null,
-    deliveredRate: null,
-    readCount: null,
-    readRate: null,
-    failedCount: null,
-    failedRate: null,
-    createdAt: '23.06.2026 16:45',
-  },
-  {
-    name: 'Spring Sale',
-    preview: 'Пролетна разпродажба! До 30% отстъпка...',
-    recipients: 830,
-    status: 'Sent',
-    sent: 830,
-    deliveredCount: 812,
-    deliveredRate: 97.8,
-    readCount: 640,
-    readRate: 76.9,
-    failedCount: 18,
-    failedRate: 2.2,
-    createdAt: '18.06.2026 11:20',
-  },
-  {
-    name: 'Customer Feedback',
-    preview: 'Ще се радваме да чуем вашето мнение...',
-    recipients: 620,
-    status: 'Sent',
-    sent: 620,
-    deliveredCount: 598,
-    deliveredRate: 96.5,
-    readCount: 420,
-    readRate: 67.7,
-    failedCount: 22,
-    failedRate: 3.5,
-    createdAt: '15.06.2026 14:10',
-  },
-  {
-    name: 'Weekend Flash Sale',
-    preview: 'Флаш разпродажба този уикенд!...',
-    recipients: 1100,
-    status: 'Failed',
-    sent: 1100,
-    deliveredCount: 950,
-    deliveredRate: 86.4,
-    readCount: 620,
-    readRate: 56.4,
-    failedCount: 150,
-    failedRate: 13.6,
-    createdAt: '12.06.2026 18:00',
-  },
-  {
-    name: 'Welcome New Customers',
-    preview: 'Добре дошли при нас! 🎉...',
-    recipients: 300,
-    status: 'Sent',
-    sent: 300,
-    deliveredCount: 295,
-    deliveredRate: 98.3,
-    readCount: 250,
-    readRate: 83.3,
-    failedCount: 5,
-    failedRate: 1.7,
-    createdAt: '10.06.2026 10:05',
-  },
-  {
-    name: 'June Newsletter',
-    preview: 'Месечният ни бюлетин за юни е тук...',
-    recipients: 910,
-    status: 'Delivered',
-    sent: 910,
-    deliveredCount: 882,
-    deliveredRate: 96.9,
-    readCount: 690,
-    readRate: 75.8,
-    failedCount: 28,
-    failedRate: 3.1,
-    createdAt: '08.06.2026 08:45',
-  },
-  {
-    name: 'Loyalty Rewards',
-    preview: 'Нови бонуси за лоялните ни клиенти...',
-    recipients: 410,
-    status: 'Sent',
-    sent: 410,
-    deliveredCount: 402,
-    deliveredRate: 98,
-    readCount: 322,
-    readRate: 78.5,
-    failedCount: 8,
-    failedRate: 2,
-    createdAt: '06.06.2026 13:15',
-  },
-  {
-    name: 'Referral Program',
-    preview: 'Поканете приятел и получете награда...',
-    recipients: 540,
-    status: 'Draft',
-    sent: null,
-    deliveredCount: null,
-    deliveredRate: null,
-    readCount: null,
-    readRate: null,
-    failedCount: null,
-    failedRate: null,
-    createdAt: '05.06.2026 17:40',
-  },
-  {
-    name: 'Event Reminder',
-    preview: 'Напомняме ви за предстоящото събитие...',
-    recipients: 260,
-    status: 'Scheduled',
-    sent: null,
-    deliveredCount: null,
-    deliveredRate: null,
-    readCount: null,
-    readRate: null,
-    failedCount: null,
-    failedRate: null,
-    createdAt: '27.06.2026 12:00',
-  },
-  {
-    name: 'Abandoned Cart',
-    preview: 'Все още имате продукти в количката си...',
-    recipients: 760,
-    status: 'Sent',
-    sent: 760,
-    deliveredCount: 741,
-    deliveredRate: 97.5,
-    readCount: 560,
-    readRate: 73.7,
-    failedCount: 19,
-    failedRate: 2.5,
-    createdAt: '04.06.2026 15:20',
-  },
-  {
-    name: 'Product Launch',
-    preview: 'Представяме ви най-новия ни продукт...',
-    recipients: 1330,
-    status: 'Delivered',
-    sent: 1330,
-    deliveredCount: 1287,
-    deliveredRate: 96.8,
-    readCount: 1005,
-    readRate: 75.6,
-    failedCount: 43,
-    failedRate: 3.2,
-    createdAt: '02.06.2026 10:10',
-  },
-  {
-    name: 'Service Update',
-    preview: 'Важна актуализация относно нашата услуга...',
-    recipients: 680,
-    status: 'Failed',
-    sent: 680,
-    deliveredCount: 604,
-    deliveredRate: 88.8,
-    readCount: 420,
-    readRate: 61.8,
-    failedCount: 76,
-    failedRate: 11.2,
-    createdAt: '01.06.2026 08:20',
-  },
-  {
-    name: 'Exclusive Bundle',
-    preview: 'Комбинирана оферта само за избрани клиенти...',
-    recipients: 590,
-    status: 'Sent',
-    sent: 590,
-    deliveredCount: 575,
-    deliveredRate: 97.5,
-    readCount: 438,
-    readRate: 74.2,
-    failedCount: 15,
-    failedRate: 2.5,
-    createdAt: '30.05.2026 16:25',
-  },
-  {
-    name: 'Store Reopening',
-    preview: 'Очакваме ви отново в нашия обновен магазин...',
-    recipients: 470,
-    status: 'Delivered',
-    sent: 470,
-    deliveredCount: 458,
-    deliveredRate: 97.4,
-    readCount: 336,
-    readRate: 71.5,
-    failedCount: 12,
-    failedRate: 2.6,
-    createdAt: '29.05.2026 11:55',
-  },
-  {
-    name: 'Birthday Rewards',
-    preview: 'Честит рожден ден! Очаква ви специална изненада...',
-    recipients: 205,
-    status: 'Scheduled',
-    sent: null,
-    deliveredCount: null,
-    deliveredRate: null,
-    readCount: null,
-    readRate: null,
-    failedCount: null,
-    failedRate: null,
-    createdAt: '28.06.2026 08:30',
-  },
-]
 
 const statusFilterMap = {
   'All Campaigns': () => true,
@@ -365,25 +71,88 @@ const formatCampaignDate = (value) => {
 
 const normalizeCampaign = (campaign) => ({
   ...campaign,
+  id: campaign.id,
+  name: campaign.name ?? 'Untitled campaign',
   description: campaign.description ?? campaign.preview ?? '',
   preview: campaign.preview ?? campaign.description ?? '',
-  recipients: campaign.recipients ?? 0,
+  recipients: campaignStatsById.value[campaign.id]?.total ?? campaign.recipients ?? 0,
   status: normalizeStatus(campaign.status),
-  sent: campaign.sent ?? null,
-  deliveredCount: campaign.deliveredCount ?? null,
-  deliveredRate: campaign.deliveredRate ?? null,
+  sent: campaignStatsById.value[campaign.id]?.sent ?? campaign.sent ?? null,
+  deliveredCount: campaignStatsById.value[campaign.id]?.delivered ?? campaign.deliveredCount ?? null,
+  deliveredRate:
+    campaignStatsById.value[campaign.id]?.total > 0
+      ? Number(
+          (
+            (campaignStatsById.value[campaign.id].delivered /
+              campaignStatsById.value[campaign.id].total) *
+            100
+          ).toFixed(1),
+        )
+      : campaign.deliveredRate ?? null,
   readCount: campaign.readCount ?? null,
   readRate: campaign.readRate ?? null,
-  failedCount: campaign.failedCount ?? null,
-  failedRate: campaign.failedRate ?? null,
+  failedCount: campaignStatsById.value[campaign.id]?.failed ?? campaign.failedCount ?? null,
+  failedRate:
+    campaignStatsById.value[campaign.id]?.total > 0
+      ? Number(
+          (
+            (campaignStatsById.value[campaign.id].failed / campaignStatsById.value[campaign.id].total) *
+            100
+          ).toFixed(1),
+        )
+      : campaign.failedRate ?? null,
   createdAt: formatCampaignDate(campaign.createdAt ?? campaign.created_at),
 })
 
-const campaignSource = computed(() =>
-  campaignStore.campaigns.length > 0 ? campaignStore.campaigns : fallbackCampaigns
-)
+const normalizedCampaigns = computed(() => campaignStore.campaigns.map(normalizeCampaign))
 
-const normalizedCampaigns = computed(() => campaignSource.value.map(normalizeCampaign))
+const summaryCards = computed(() => {
+  const totalCampaigns = normalizedCampaigns.value.length
+  const sentTotal = normalizedCampaigns.value.reduce((sum, campaign) => sum + (campaign.sent ?? 0), 0)
+  const deliveredTotal = normalizedCampaigns.value.reduce((sum, campaign) => sum + (campaign.deliveredCount ?? 0), 0)
+  const failedTotal = normalizedCampaigns.value.reduce((sum, campaign) => sum + (campaign.failedCount ?? 0), 0)
+  const readTotal = normalizedCampaigns.value.reduce((sum, campaign) => sum + (campaign.readCount ?? 0), 0)
+  const deliveryRate = sentTotal > 0 ? ((deliveredTotal / sentTotal) * 100).toFixed(1) : '0.0'
+  const readRate = deliveredTotal > 0 ? ((readTotal / deliveredTotal) * 100).toFixed(1) : '0.0'
+
+  return [
+    {
+      label: 'Total Campaigns',
+      value: totalCampaigns.toLocaleString(),
+      detail: 'Loaded from API',
+      color: 'green',
+      icon: 'campaigns',
+    },
+    {
+      label: 'Sent',
+      value: sentTotal.toLocaleString(),
+      detail: 'Total messages sent',
+      color: 'blue',
+      icon: 'sent',
+    },
+    {
+      label: 'Delivered',
+      value: deliveredTotal.toLocaleString(),
+      detail: `${deliveryRate}% delivery rate`,
+      color: 'purple',
+      icon: 'delivered',
+    },
+    {
+      label: 'Read',
+      value: readTotal.toLocaleString(),
+      detail: `${readRate}% read rate`,
+      color: 'amber',
+      icon: 'read',
+    },
+    {
+      label: 'Failed',
+      value: failedTotal.toLocaleString(),
+      detail: sentTotal > 0 ? `${((failedTotal / sentTotal) * 100).toFixed(1)}% failed rate` : '0.0% failed rate',
+      color: 'red',
+      icon: 'failed',
+    },
+  ]
+})
 
 const filteredCampaigns = computed(() => {
   const query = searchTerm.value.trim().toLowerCase()
@@ -417,6 +186,39 @@ const tableRangeLabel = computed(() => {
   const start = (currentPage.value - 1) * pageSize + 1
   const end = Math.min(start + pageSize - 1, filteredCampaigns.value.length)
   return `Showing ${start} to ${end} of ${filteredCampaigns.value.length} campaigns`
+})
+
+const loadCampaignStats = async () => {
+  const statsEntries = await Promise.all(
+    campaignStore.campaigns.map(async (campaign) => {
+      const response = await campaignStore.getMessages(campaign.id)
+      return [campaign.id, response.statistics ?? null]
+    }),
+  )
+
+  campaignStatsById.value = statsEntries.reduce((acc, [campaignId, statistics]) => {
+    if (statistics) {
+      acc[campaignId] = statistics
+    }
+    return acc
+  }, {})
+}
+
+const loadCampaignData = async () => {
+  isPageLoading.value = true
+  pageError.value = ''
+  try {
+    await campaignStore.getCampaigns()
+    await loadCampaignStats()
+  } catch (error) {
+    pageError.value = error.response?.data?.error ?? error.message ?? 'Unable to load campaigns.'
+  } finally {
+    isPageLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadCampaignData()
 })
 
 const selectTab = (tab) => {
@@ -475,7 +277,7 @@ const closeCampaignModal = () => {
 
 const saveCampaign = async () => {
   if (!selectedCampaign.value?.id) {
-    modalError.value = 'Campaigns from the fallback demo list cannot be saved.'
+    modalError.value = 'This campaign cannot be saved.'
     return
   }
 
@@ -497,7 +299,7 @@ const saveCampaign = async () => {
       status: (updatedCampaign.status ?? 'draft').toLowerCase(),
     }
     modalMessage.value = 'Campaign updated successfully.'
-    await campaignStore.getCampaigns()
+    await loadCampaignData()
   } catch (error) {
     modalError.value = error.response?.data?.message ?? error.message ?? 'Unable to update campaign.'
   } finally {
@@ -507,7 +309,7 @@ const saveCampaign = async () => {
 
 const sendSelectedCampaign = async () => {
   if (!selectedCampaign.value?.id) {
-    modalError.value = 'Campaigns from the fallback demo list cannot be sent.'
+    modalError.value = 'This campaign cannot be sent.'
     return
   }
 
@@ -532,7 +334,7 @@ const sendSelectedCampaign = async () => {
 
 const deleteSelectedCampaign = async () => {
   if (!selectedCampaign.value?.id) {
-    modalError.value = 'Campaigns from the fallback demo list cannot be deleted.'
+    modalError.value = 'This campaign cannot be deleted.'
     return
   }
 
@@ -547,6 +349,7 @@ const deleteSelectedCampaign = async () => {
   try {
     await campaignStore.deleteCampaign(selectedCampaign.value.id)
     closeCampaignModal()
+    await loadCampaignData()
   } catch (error) {
     modalError.value = error.response?.data?.message ?? error.message ?? 'Unable to delete campaign.'
   } finally {
@@ -692,84 +495,99 @@ const deleteSelectedCampaign = async () => {
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="campaign in visibleCampaigns"
-              :key="campaign.id ?? campaign.name"
-              class="campaign-row"
-              @click="openCampaignModal(campaign)"
-            >
-              <td class="campaign-name-cell">
-                <strong>{{ campaign.name }}</strong>
-                <span>{{ campaign.preview }}</span>
-              </td>
-              <td>{{ campaign.recipients.toLocaleString() }}</td>
-              <td>
-                <span class="status-badge" :class="statusClass(campaign.status)">
-                  {{ campaign.status }}
-                </span>
-              </td>
-              <td>{{ campaign.sent === null ? ' - ' : campaign.sent.toLocaleString() }}</td>
-              <td>
-                <div class="metric-cell">
-                  <span>{{ formatMetric(campaign.deliveredCount, campaign.deliveredRate) }}</span>
-                  <div class="progress-track">
-                    <div class="progress-bar progress-bar--green" :style="progressWidth(campaign.deliveredRate)" />
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div class="metric-cell">
-                  <span>{{ formatMetric(campaign.readCount, campaign.readRate) }}</span>
-                  <div class="progress-track">
-                    <div class="progress-bar progress-bar--blue" :style="progressWidth(campaign.readRate)" />
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div class="metric-cell">
-                  <span>{{ formatMetric(campaign.failedCount, campaign.failedRate) }}</span>
-                  <div class="progress-track">
-                    <div class="progress-bar progress-bar--red" :style="progressWidth(campaign.failedRate)" />
-                  </div>
-                </div>
-              </td>
-              <td>{{ campaign.createdAt }}</td>
-              <td>
-                <div class="row-actions">
-                  <button
-                    class="table-icon-button"
-                    type="button"
-                    aria-label="View campaign details"
-                    @click.stop="openCampaignModal(campaign)"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <rect x="4.5" y="4.5" width="15" height="15" rx="3" />
-                      <path d="M8 11h8" />
-                      <path d="M8 15h5" />
-                    </svg>
-                  </button>
-                  <button class="table-icon-button" type="button" aria-label="Duplicate campaign" @click.stop>
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <rect x="9" y="7" width="10" height="12" rx="2" />
-                      <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  </button>
-                  <button class="table-icon-button" type="button" aria-label="More options" @click.stop>
-                    <svg viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="5" r="1" fill="currentColor" />
-                      <circle cx="12" cy="12" r="1" fill="currentColor" />
-                      <circle cx="12" cy="19" r="1" fill="currentColor" />
-                    </svg>
-                  </button>
-                </div>
+            <tr v-if="isPageLoading">
+              <td colspan="9" class="empty-state">
+                Loading campaigns...
               </td>
             </tr>
 
-            <tr v-if="visibleCampaigns.length === 0">
+            <tr v-else-if="pageError">
               <td colspan="9" class="empty-state">
-                No campaigns match the selected filters.
+                {{ pageError }}
               </td>
             </tr>
+
+            <template v-else>
+              <tr
+                v-for="campaign in visibleCampaigns"
+                :key="campaign.id ?? campaign.name"
+                class="campaign-row"
+                @click="openCampaignModal(campaign)"
+              >
+                <td class="campaign-name-cell">
+                  <strong>{{ campaign.name }}</strong>
+                  <span>{{ campaign.preview }}</span>
+                </td>
+                <td>{{ campaign.recipients.toLocaleString() }}</td>
+                <td>
+                  <span class="status-badge" :class="statusClass(campaign.status)">
+                    {{ campaign.status }}
+                  </span>
+                </td>
+                <td>{{ campaign.sent === null ? ' - ' : campaign.sent.toLocaleString() }}</td>
+                <td>
+                  <div class="metric-cell">
+                    <span>{{ formatMetric(campaign.deliveredCount, campaign.deliveredRate) }}</span>
+                    <div class="progress-track">
+                      <div class="progress-bar progress-bar--green" :style="progressWidth(campaign.deliveredRate)" />
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="metric-cell">
+                    <span>{{ formatMetric(campaign.readCount, campaign.readRate) }}</span>
+                    <div class="progress-track">
+                      <div class="progress-bar progress-bar--blue" :style="progressWidth(campaign.readRate)" />
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="metric-cell">
+                    <span>{{ formatMetric(campaign.failedCount, campaign.failedRate) }}</span>
+                    <div class="progress-track">
+                      <div class="progress-bar progress-bar--red" :style="progressWidth(campaign.failedRate)" />
+                    </div>
+                  </div>
+                </td>
+                <td>{{ campaign.createdAt }}</td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      class="table-icon-button"
+                      type="button"
+                      aria-label="View campaign details"
+                      @click.stop="openCampaignModal(campaign)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="4.5" y="4.5" width="15" height="15" rx="3" />
+                        <path d="M8 11h8" />
+                        <path d="M8 15h5" />
+                      </svg>
+                    </button>
+                    <button class="table-icon-button" type="button" aria-label="Duplicate campaign" @click.stop>
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="9" y="7" width="10" height="12" rx="2" />
+                        <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </button>
+                    <button class="table-icon-button" type="button" aria-label="More options" @click.stop>
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="5" r="1" fill="currentColor" />
+                        <circle cx="12" cy="12" r="1" fill="currentColor" />
+                        <circle cx="12" cy="19" r="1" fill="currentColor" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-if="visibleCampaigns.length === 0">
+                <td colspan="9" class="empty-state">
+                  No campaigns match the selected filters.
+                </td>
+              </tr>
+            </template>
+
           </tbody>
         </table>
       </div>
