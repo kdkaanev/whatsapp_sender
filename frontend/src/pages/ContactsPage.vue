@@ -24,6 +24,17 @@ const selectedIds = ref(new Set())
 
 // Actions menu
 const activeMenuId = ref(null)
+const selectedContact = ref(null)
+const contactForm = ref({
+  name: '',
+  email: '',
+  phone: '',
+  tags: '',
+})
+const modalError = ref('')
+const modalMessage = ref('')
+const isSavingContact = ref(false)
+const isDeletingContact = ref(false)
 
 // Load contacts on mount
 onMounted(() => {
@@ -55,7 +66,7 @@ const filteredContacts = computed(() => {
     result = result.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.phone_number.toLowerCase().includes(q),
+        getContactPhone(c).toLowerCase().includes(q),
     )
   }
   if (selectedTag.value) {
@@ -154,10 +165,96 @@ const closeMenu = () => {
   activeMenuId.value = null
 }
 
+const getContactPhone = (contact) =>
+  String(contact?.phone ?? contact?.phone_number ?? '')
+
+const getContactTags = (contact) =>
+  Array.isArray(contact?.tags) ? contact.tags : []
+
+const parseTags = (value) =>
+  value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+
+const fillContactForm = (contact) => {
+  contactForm.value = {
+    name: contact?.name ?? '',
+    email: contact?.email ?? '',
+    phone: getContactPhone(contact),
+    tags: getContactTags(contact).join(', '),
+  }
+}
+
+const openContactModal = (contact) => {
+  selectedContact.value = contact
+  fillContactForm(contact)
+  modalError.value = ''
+  modalMessage.value = ''
+  closeMenu()
+}
+
+const closeContactModal = () => {
+  selectedContact.value = null
+  modalError.value = ''
+  modalMessage.value = ''
+}
+
+const saveContact = async () => {
+  if (!selectedContact.value?.id) {
+    modalError.value = 'This contact cannot be edited.'
+    return
+  }
+
+  isSavingContact.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    const updatedContact = await contactStore.updateContact(selectedContact.value.id, {
+      name: contactForm.value.name.trim(),
+      email: contactForm.value.email.trim(),
+      phone: contactForm.value.phone.trim(),
+      tags: parseTags(contactForm.value.tags),
+    })
+    selectedContact.value = updatedContact
+    fillContactForm(updatedContact)
+    modalMessage.value = 'Contact updated successfully.'
+  } catch (error) {
+    modalError.value =
+      error.response?.data?.message ?? error.message ?? 'Unable to update contact.'
+  } finally {
+    isSavingContact.value = false
+  }
+}
+
 const handleDelete = async (id) => {
   closeMenu()
   if (!confirm('Delete this contact?')) return
   await contactStore.deleteContact(id)
+}
+
+const deleteSelectedContact = async () => {
+  if (!selectedContact.value?.id) {
+    modalError.value = 'This contact cannot be deleted.'
+    return
+  }
+
+  if (!confirm(`Delete "${selectedContact.value.name}"?`)) return
+
+  isDeletingContact.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    await contactStore.deleteContact(selectedContact.value.id)
+    closeContactModal()
+  } catch (error) {
+    modalError.value =
+      error.response?.data?.message ?? error.message ?? 'Unable to delete contact.'
+  } finally {
+    isDeletingContact.value = false
+  }
 }
 
 const onCSVImport = async (file) => {
@@ -212,13 +309,94 @@ const addContact = () => {
       :showing-from="showingFrom"
       :showing-to="showingTo"
       :format-date="formatDate"
+      :get-contact-phone="getContactPhone"
       :tag-class="tagClass"
       @toggle-select-all="toggleSelectAll"
       @toggle-select="toggleSelect"
       @toggle-menu="toggleMenu"
+      @select-contact="openContactModal"
+      @edit-contact="openContactModal"
       @delete-contact="handleDelete"
       @go-to-page="goToPage"
     />
+
+    <div
+      v-if="selectedContact"
+      class="contact-modal-backdrop"
+      @click.self="closeContactModal"
+    >
+      <section
+        class="contact-modal"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="selectedContact.name"
+      >
+        <header class="contact-modal__header">
+          <div>
+            <p class="contact-modal__eyebrow">Contact details</p>
+            <h2 class="contact-modal__title">{{ selectedContact.name }}</h2>
+          </div>
+          <button
+            class="modal-close-button"
+            type="button"
+            aria-label="Close modal"
+            @click="closeContactModal"
+          >
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="m7 7 10 10" />
+              <path d="m17 7-10 10" />
+            </svg>
+          </button>
+        </header>
+
+        <form class="contact-modal__form" @submit.prevent="saveContact">
+          <label class="modal-field">
+            <span>Name</span>
+            <input v-model="contactForm.name" type="text" required />
+          </label>
+
+          <label class="modal-field">
+            <span>Phone</span>
+            <input v-model="contactForm.phone" type="tel" required />
+          </label>
+
+          <label class="modal-field modal-field--full">
+            <span>Email</span>
+            <input v-model="contactForm.email" type="email" />
+          </label>
+
+          <label class="modal-field modal-field--full">
+            <span>Tags <em class="modal-field__hint">(comma separated)</em></span>
+            <input v-model="contactForm.tags" type="text" placeholder="VIP, Client" />
+          </label>
+
+          <div
+            v-if="modalError || modalMessage"
+            class="modal-feedback"
+            :class="{ 'is-error': modalError }"
+          >
+            {{ modalError || modalMessage }}
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-secondary" type="button" @click="closeContactModal">
+              Cancel
+            </button>
+            <button
+              class="btn-danger"
+              type="button"
+              :disabled="isDeletingContact"
+              @click="deleteSelectedContact"
+            >
+              {{ isDeletingContact ? 'Deleting...' : 'Delete' }}
+            </button>
+            <button class="btn-primary" type="submit" :disabled="isSavingContact">
+              {{ isSavingContact ? 'Saving...' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -273,5 +451,178 @@ const addContact = () => {
 .btn-icon svg {
   width: 16px;
   height: 16px;
+}
+
+.contact-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(8px);
+}
+
+.contact-modal {
+  width: min(620px, 100%);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
+}
+
+.contact-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.contact-modal__eyebrow {
+  margin: 0 0 6px;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.contact-modal__title {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.modal-close-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.contact-modal__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+}
+
+.modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.modal-field--full {
+  grid-column: 1 / -1;
+}
+
+.modal-field span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.modal-field input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  padding: 12px 14px;
+  font: inherit;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.modal-field input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+}
+
+.modal-field__hint {
+  font-style: normal;
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.modal-feedback {
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+
+.modal-feedback.is-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.modal-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #1b9a5d;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #334155;
+}
+
+.btn-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.btn-primary:disabled,
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .contact-modal__form {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

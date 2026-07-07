@@ -22,6 +22,7 @@ const modalError = ref('')
 const modalMessage = ref('')
 const isSavingCampaign = ref(false)
 const isSendingCampaign = ref(false)
+const isDeletingCampaign = ref(false)
 
 onMounted(() => {
   campaignStore.getCampaigns()
@@ -528,6 +529,30 @@ const sendSelectedCampaign = async () => {
     isSendingCampaign.value = false
   }
 }
+
+const deleteSelectedCampaign = async () => {
+  if (!selectedCampaign.value?.id) {
+    modalError.value = 'Campaigns from the fallback demo list cannot be deleted.'
+    return
+  }
+
+  if (!confirm(`Delete "${selectedCampaign.value.name}"?`)) {
+    return
+  }
+
+  isDeletingCampaign.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    await campaignStore.deleteCampaign(selectedCampaign.value.id)
+    closeCampaignModal()
+  } catch (error) {
+    modalError.value = error.response?.data?.message ?? error.message ?? 'Unable to delete campaign.'
+  } finally {
+    isDeletingCampaign.value = false
+  }
+}
 </script>
 
 <template>
@@ -842,6 +867,14 @@ const sendSelectedCampaign = async () => {
             <button class="secondary-button" type="button" @click="closeCampaignModal">
               Cancel
             </button>
+            <button
+              class="secondary-button secondary-button--danger"
+              type="button"
+              :disabled="isDeletingCampaign || !selectedCampaign.id"
+              @click="deleteSelectedCampaign"
+            >
+              {{ isDeletingCampaign ? 'Deleting...' : 'Delete' }}
+            </button>
             <button class="secondary-button" type="button" :disabled="isSendingCampaign || !selectedCampaign.id" @click="sendSelectedCampaign">
               {{ isSendingCampaign ? 'Sending...' : 'Send' }}
             </button>
@@ -990,6 +1023,12 @@ const sendSelectedCampaign = async () => {
   color: #334155;
 }
 
+.secondary-button--danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .icon-button:hover,
 .secondary-button:hover,
 .table-icon-button:hover,
@@ -1000,6 +1039,11 @@ const sendSelectedCampaign = async () => {
 
 .primary-button:hover {
   background: linear-gradient(180deg, #15803d 0%, #0f9f47 100%);
+}
+
+.secondary-button--danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
 }
 
 .stats-grid {

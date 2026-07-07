@@ -6,6 +6,7 @@ export const useContactStore = defineStore('contacts', () => {
   const contacts = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const extractContactPayload = (payload) => payload?.contact ?? payload
 
   const getContacts = async ({ search = '', tag = '' } = {}) => {
     loading.value = true
@@ -41,8 +42,9 @@ export const useContactStore = defineStore('contacts', () => {
   const createContact = async (contactData) => {
     try {
       const response = await api.post('/contacts/create/', contactData)
-      contacts.value.push(response.data)
-      return response.data
+      const createdContact = extractContactPayload(response.data)
+      contacts.value.push(createdContact)
+      return createdContact
     } catch (err) {
       error.value = err.message
       throw err
@@ -52,11 +54,12 @@ export const useContactStore = defineStore('contacts', () => {
   const updateContact = async (id, contactData) => {
     try {
       const response = await api.patch(`/contacts/${id}/`, contactData)
+      const updatedContact = extractContactPayload(response.data)
       const index = contacts.value.findIndex((c) => c.id === id)
       if (index !== -1) {
-        contacts.value[index] = response.data
+        contacts.value[index] = updatedContact
       }
-      return response.data
+      return updatedContact
     } catch (err) {
       error.value = err.message
       throw err

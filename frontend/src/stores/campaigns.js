@@ -58,6 +58,16 @@ export const useCampaignStore = defineStore('campaigns', () => {
     }
   }
 
+  const deleteCampaign = async (campaignId) => {
+    try {
+      await api.delete(`/campaigns/${campaignId}/`)
+      campaigns.value = campaigns.value.filter((campaign) => campaign.id !== campaignId)
+    } catch (err) {
+      error.value = err.message
+      throw err
+    }
+  } 
+
   const sendSMS = async (campaignId, messageBody) => {
     try {
       const response = await api.post(`/campaigns/${campaignId}/send-sms/`, { message: messageBody })
@@ -116,6 +126,7 @@ export const useCampaignStore = defineStore('campaigns', () => {
     getCampaign,
     createCampaign,
     updateCampaign,
+    deleteCampaign,
     sendSMS,
     sendWhatsApp,
     getStatistics,

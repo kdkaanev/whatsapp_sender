@@ -52,6 +52,10 @@ defineProps({
     type: Function,
     required: true,
   },
+  getContactPhone: {
+    type: Function,
+    required: true,
+  },
   tagClass: {
     type: Function,
     required: true,
@@ -62,6 +66,8 @@ const emit = defineEmits([
   'toggle-select-all',
   'toggle-select',
   'toggle-menu',
+  'edit-contact',
+  'select-contact',
   'delete-contact',
   'go-to-page',
 ])
@@ -119,17 +125,19 @@ const emit = defineEmits([
             v-for="contact in paginatedContacts"
             :key="contact.id"
             :class="{ 'row--selected': selectedIds.has(contact.id) }"
+            @click="emit('select-contact', contact)"
           >
             <td class="col-check">
               <input
                 type="checkbox"
                 :checked="selectedIds.has(contact.id)"
                 :aria-label="`Select ${contact.name}`"
+                @click.stop
                 @change="emit('toggle-select', contact.id)"
               />
             </td>
             <td class="col-name">{{ contact.name }}</td>
-            <td class="col-phone">{{ contact.phone }}</td>
+            <td class="col-phone">{{ getContactPhone(contact) }}</td>
             <td class="col-tags">
               <span
                 v-for="tag in contact.tags"
@@ -160,7 +168,12 @@ const emit = defineEmits([
                   role="menu"
                   @click.stop
                 >
-                  <button class="dropdown-item" role="menuitem" type="button">Edit</button>
+                  <button
+                    class="dropdown-item"
+                    role="menuitem"
+                    type="button"
+                    @click="emit('edit-contact', contact)"
+                  >Edit</button>
                   <button
                     class="dropdown-item dropdown-item--danger"
                     role="menuitem"
