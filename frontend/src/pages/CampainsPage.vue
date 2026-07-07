@@ -226,8 +226,7 @@ const selectTab = (tab) => {
   currentPage.value = 1
 }
 
-const updateSearch = (event) => {
-  searchTerm.value = event.target.value
+const updateSearch = () => {
   currentPage.value = 1
 }
 
@@ -370,7 +369,7 @@ const deleteSelectedCampaign = async () => {
             <path d="m20 20-4.2-4.2" />
           </svg>
           <input
-            :value="searchTerm"
+            v-model="searchTerm"
             type="search"
             placeholder="Search campaigns..."
             @input="updateSearch"

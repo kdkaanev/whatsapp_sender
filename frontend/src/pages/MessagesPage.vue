@@ -332,7 +332,13 @@ onUnmounted(() => clearTimeout(copyTimer))
             <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
-          <input type="search" class="search-input" placeholder="Search messages..." aria-label="Search messages" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            class="search-input"
+            placeholder="Search messages..."
+            aria-label="Search messages"
+          />
         </div>
         <button class="btn-outline" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
