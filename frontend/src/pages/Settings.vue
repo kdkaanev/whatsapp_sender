@@ -22,6 +22,8 @@ const UI_MESSAGES = {
   deleteUnavailable: 'Account deletion requires backend support and is not available yet.',
 }
 
+const MAX_NOTIFICATION_BADGE_COUNT = 3
+
 const readStoredValue = (key, fallback) => {
   try {
     const rawValue = localStorage.getItem(key)
@@ -48,7 +50,7 @@ const profileForm = reactive({
 
 const passwordForm = reactive({
   current: '',
-  next: '',
+  newPassword: '',
   confirm: '',
 })
 
@@ -134,7 +136,11 @@ const displayProfile = computed(() => ({
   companyName: profileForm.companyName.trim() || fallbackProfile.companyName,
 }))
 
-const notificationCount = computed(() => Math.min(3, notificationSettings.value.length))
+let saveMessageTimeoutId
+
+const notificationCount = computed(() =>
+  Math.min(MAX_NOTIFICATION_BADGE_COUNT, notificationSettings.value.length),
+)
 
 const userInitials = computed(() =>
   displayProfile.value.fullName
@@ -154,6 +160,10 @@ const saveProfile = () => {
     companyName: profileForm.companyName.trim(),
   })
   saveMessage.value = UI_MESSAGES.profileSaved
+  clearTimeout(saveMessageTimeoutId)
+  saveMessageTimeoutId = window.setTimeout(() => {
+    saveMessage.value = ''
+  }, 3000)
 }
 
 const toggleNotification = (settingId) => {
@@ -318,7 +328,7 @@ const toggleTwoFactor = () => {
             <span>New Password</span>
             <div class="password-field">
               <input
-                v-model="passwordForm.next"
+                v-model="passwordForm.newPassword"
                 type="password"
                 autocomplete="new-password"
                 placeholder="••••••••"
