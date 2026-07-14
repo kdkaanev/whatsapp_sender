@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
@@ -48,12 +48,6 @@ const profileForm = reactive({
   companyName: '',
 })
 
-const passwordForm = reactive({
-  current: '',
-  newPassword: '',
-  confirm: '',
-})
-
 const defaultNotificationSettings = [
   {
     id: 'email',
@@ -91,6 +85,7 @@ const notificationSettings = ref(
 
 const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, false))
 const saveMessage = ref('')
+const saveMessageTimeoutId = ref(null)
 
 const capitalizeFirstLetter = (word) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -128,15 +123,21 @@ const syncProfileForm = () => {
   profileForm.email = user.email ?? profileForm.email
 }
 
-syncProfileForm()
+onMounted(() => {
+  syncProfileForm()
+})
+
+onUnmounted(() => {
+  if (saveMessageTimeoutId.value) {
+    clearTimeout(saveMessageTimeoutId.value)
+  }
+})
 
 const displayProfile = computed(() => ({
   fullName: profileForm.fullName.trim() || fallbackProfile.fullName,
   email: profileForm.email.trim() || fallbackProfile.email,
   companyName: profileForm.companyName.trim() || fallbackProfile.companyName,
 }))
-
-let saveMessageTimeoutId
 
 const notificationCount = computed(() =>
   Math.min(MAX_NOTIFICATION_BADGE_COUNT, notificationSettings.value.length),
@@ -160,8 +161,8 @@ const saveProfile = () => {
     companyName: profileForm.companyName.trim(),
   })
   saveMessage.value = UI_MESSAGES.profileSaved
-  clearTimeout(saveMessageTimeoutId)
-  saveMessageTimeoutId = window.setTimeout(() => {
+  clearTimeout(saveMessageTimeoutId.value)
+  saveMessageTimeoutId.value = window.setTimeout(() => {
     saveMessage.value = ''
   }, 3000)
 }
@@ -194,7 +195,7 @@ const toggleTwoFactor = () => {
           id="settings-search"
           type="search"
           placeholder="Search anything..."
-          aria-label="Search coming soon"
+          aria-label="Search disabled"
           disabled
         />
         <span class="shortcut">⌘ K</span>
@@ -304,7 +305,6 @@ const toggleTwoFactor = () => {
             <span>Current Password</span>
             <div class="password-field">
               <input
-                v-model="passwordForm.current"
                 type="password"
                 autocomplete="current-password"
                 placeholder="••••••••"
@@ -328,7 +328,6 @@ const toggleTwoFactor = () => {
             <span>New Password</span>
             <div class="password-field">
               <input
-                v-model="passwordForm.newPassword"
                 type="password"
                 autocomplete="new-password"
                 placeholder="••••••••"
@@ -352,7 +351,6 @@ const toggleTwoFactor = () => {
             <span>Confirm New Password</span>
             <div class="password-field">
               <input
-                v-model="passwordForm.confirm"
                 type="password"
                 autocomplete="new-password"
                 placeholder="••••••••"
