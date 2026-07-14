@@ -16,11 +16,18 @@ const fallbackProfile = {
   companyName: 'Acme Ltd.',
 }
 
+const UI_MESSAGES = {
+  profileSaved: 'Changes saved locally on this device.',
+  securityNote: 'Security changes are stored as local preferences in this version.',
+  deleteUnavailable: 'Account deletion requires backend support and is not available yet.',
+}
+
 const readStoredValue = (key, fallback) => {
   try {
     const rawValue = localStorage.getItem(key)
     return rawValue ? JSON.parse(rawValue) : fallback
-  } catch {
+  } catch (error) {
+    console.warn(`Unable to parse stored settings for ${key}.`, error)
     return fallback
   }
 }
@@ -39,12 +46,6 @@ const passwordForm = reactive({
   current: '',
   next: '',
   confirm: '',
-})
-
-const passwordVisibility = reactive({
-  current: false,
-  next: false,
-  confirm: false,
 })
 
 const defaultNotificationSettings = [
@@ -85,7 +86,7 @@ const notificationSettings = ref(
 const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, true))
 const saveMessage = ref('')
 
-const titleCaseWord = (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+const capitalizeWord = (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 
 const formatNameFromEmail = (email) => {
   const localPart = email.split('@')[0] ?? ''
@@ -96,7 +97,7 @@ const formatNameFromEmail = (email) => {
 
   if (!words.length) return 'John Doe'
 
-  return words.map(titleCaseWord).join(' ')
+  return words.map(capitalizeWord).join(' ')
 }
 
 const syncProfileForm = () => {
@@ -145,11 +146,7 @@ const saveProfile = () => {
     email: profileForm.email.trim(),
     companyName: profileForm.companyName.trim(),
   })
-  saveMessage.value = 'Changes saved locally on this device.'
-}
-
-const togglePasswordVisibility = (field) => {
-  passwordVisibility[field] = !passwordVisibility[field]
+  saveMessage.value = UI_MESSAGES.profileSaved
 }
 
 const toggleNotification = (settingId) => {
@@ -255,7 +252,9 @@ const toggleTwoFactor = () => {
 
           <div class="card-footer">
             <button class="primary-button" type="submit">Save Changes</button>
-            <p v-if="saveMessage" class="status-message">{{ saveMessage }}</p>
+            <p v-if="saveMessage" class="status-message" role="status" aria-live="polite">
+              {{ saveMessage }}
+            </p>
           </div>
         </form>
       </article>
@@ -279,16 +278,16 @@ const toggleTwoFactor = () => {
             <div class="password-field">
               <input
                 v-model="passwordForm.current"
-                :type="passwordVisibility.current ? 'text' : 'password'"
+                type="password"
                 autocomplete="current-password"
                 placeholder="••••••••"
-                readonly
+                disabled
               />
               <button
                 class="icon-button"
                 type="button"
-                aria-label="Toggle current password visibility"
-                @click="togglePasswordVisibility('current')"
+                aria-label="Current password unavailable"
+                disabled
               >
                 <svg viewBox="0 0 24 24" fill="none">
                   <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
@@ -303,16 +302,16 @@ const toggleTwoFactor = () => {
             <div class="password-field">
               <input
                 v-model="passwordForm.next"
-                :type="passwordVisibility.next ? 'text' : 'password'"
+                type="password"
                 autocomplete="new-password"
                 placeholder="••••••••"
-                readonly
+                disabled
               />
               <button
                 class="icon-button"
                 type="button"
-                aria-label="Toggle new password visibility"
-                @click="togglePasswordVisibility('next')"
+                aria-label="New password unavailable"
+                disabled
               >
                 <svg viewBox="0 0 24 24" fill="none">
                   <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
@@ -327,16 +326,16 @@ const toggleTwoFactor = () => {
             <div class="password-field">
               <input
                 v-model="passwordForm.confirm"
-                :type="passwordVisibility.confirm ? 'text' : 'password'"
+                type="password"
                 autocomplete="new-password"
                 placeholder="••••••••"
-                readonly
+                disabled
               />
               <button
                 class="icon-button"
                 type="button"
-                aria-label="Toggle confirmation password visibility"
-                @click="togglePasswordVisibility('confirm')"
+                aria-label="Confirmation password unavailable"
+                disabled
               >
                 <svg viewBox="0 0 24 24" fill="none">
                   <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
@@ -363,7 +362,7 @@ const toggleTwoFactor = () => {
               <span></span>
             </button>
           </div>
-          <p class="helper-text">Security changes are stored as a local preference in this build.</p>
+          <p class="helper-text">{{ UI_MESSAGES.securityNote }}</p>
         </form>
       </article>
 
@@ -447,9 +446,7 @@ const toggleTwoFactor = () => {
           <div>
             <h3>Delete Account</h3>
             <p>Once you delete your account, there is no going back. Please be certain.</p>
-            <p class="helper-text helper-text--danger">
-              Account deletion requires backend support and is not available yet.
-            </p>
+            <p class="helper-text helper-text--danger">{{ UI_MESSAGES.deleteUnavailable }}</p>
           </div>
           <button class="danger-button danger-button--disabled" type="button" disabled>
             <svg viewBox="0 0 24 24" fill="none">
@@ -565,6 +562,11 @@ const toggleTwoFactor = () => {
   background: #ffffff;
   color: #64748b;
   cursor: pointer;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .notification-badge {
