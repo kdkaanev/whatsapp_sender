@@ -33,7 +33,11 @@ const readStoredValue = (key, fallback) => {
 }
 
 const writeStoredValue = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value))
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.warn(`Unable to store settings for ${key}.`, error)
+  }
 }
 
 const profileForm = reactive({
@@ -83,10 +87,11 @@ const notificationSettings = ref(
   readStoredValue(STORAGE_KEYS.notifications, defaultNotificationSettings),
 )
 
-const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, true))
+const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, false))
 const saveMessage = ref('')
 
-const capitalizeWord = (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+const capitalizeFirstLetter = (word) =>
+  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 
 const formatNameFromEmail = (email) => {
   const localPart = email.split('@')[0] ?? ''
@@ -97,7 +102,7 @@ const formatNameFromEmail = (email) => {
 
   if (!words.length) return 'John Doe'
 
-  return words.map(capitalizeWord).join(' ')
+  return words.map(capitalizeFirstLetter).join(' ')
 }
 
 const syncProfileForm = () => {
@@ -128,6 +133,8 @@ const displayProfile = computed(() => ({
   email: profileForm.email.trim() || fallbackProfile.email,
   companyName: profileForm.companyName.trim() || fallbackProfile.companyName,
 }))
+
+const notificationCount = computed(() => Math.min(3, notificationSettings.value.length))
 
 const userInitials = computed(() =>
   displayProfile.value.fullName
@@ -173,18 +180,28 @@ const toggleTwoFactor = () => {
             <path d="M16 16 21 21" />
           </svg>
         </span>
-        <input id="settings-search" type="search" placeholder="Search anything..." />
+        <input
+          id="settings-search"
+          type="search"
+          placeholder="Search anything..."
+          aria-label="Search coming soon"
+          disabled
+        />
         <span class="shortcut">⌘ K</span>
       </label>
 
       <div class="toolbar-actions">
-        <button class="notification-button" type="button" aria-label="Notifications">
+        <button
+          class="notification-button"
+          type="button"
+          :aria-label="`Notifications, ${notificationCount} unread`"
+        >
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M6 16.5h12" />
             <path d="M8 16.5v-5a4 4 0 1 1 8 0v5" />
             <path d="M10 19a2 2 0 0 0 4 0" />
           </svg>
-          <span class="notification-badge">3</span>
+          <span class="notification-badge">{{ notificationCount }}</span>
         </button>
 
         <div class="profile-chip">
