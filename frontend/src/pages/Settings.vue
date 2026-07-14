@@ -11,9 +11,9 @@ const profileForm = reactive({
 })
 
 const passwordForm = reactive({
-  current: 'password123',
-  next: 'password123',
-  confirm: 'password123',
+  current: '',
+  next: '',
+  confirm: '',
 })
 
 const passwordVisibility = reactive({
@@ -206,7 +206,7 @@ const toggleNotification = (settingId) => {
         <form class="form-stack" @submit.prevent>
           <label class="sr-only">
             <span>Account Email</span>
-            <input v-model="profileForm.email" type="email" autocomplete="username" tabindex="-1" />
+            <input v-model="profileForm.email" type="email" autocomplete="username" />
           </label>
 
           <label class="field">
@@ -216,6 +216,7 @@ const toggleNotification = (settingId) => {
                 v-model="passwordForm.current"
                 :type="passwordVisibility.current ? 'text' : 'password'"
                 autocomplete="current-password"
+                placeholder="••••••••"
               />
               <button
                 class="icon-button"
@@ -238,6 +239,7 @@ const toggleNotification = (settingId) => {
                 v-model="passwordForm.next"
                 :type="passwordVisibility.next ? 'text' : 'password'"
                 autocomplete="new-password"
+                placeholder="••••••••"
               />
               <button
                 class="icon-button"
@@ -260,6 +262,7 @@ const toggleNotification = (settingId) => {
                 v-model="passwordForm.confirm"
                 :type="passwordVisibility.confirm ? 'text' : 'password'"
                 autocomplete="new-password"
+                placeholder="••••••••"
               />
               <button
                 class="icon-button"
