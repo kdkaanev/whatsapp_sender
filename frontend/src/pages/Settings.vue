@@ -4,10 +4,35 @@ import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
 
-const profileForm = reactive({
+const STORAGE_KEYS = {
+  profile: 'settings_profile',
+  notifications: 'settings_notifications',
+  twoFactor: 'settings_two_factor',
+}
+
+const fallbackProfile = {
   fullName: 'John Doe',
   email: 'john.doe@acme.com',
   companyName: 'Acme Ltd.',
+}
+
+const readStoredValue = (key, fallback) => {
+  try {
+    const rawValue = localStorage.getItem(key)
+    return rawValue ? JSON.parse(rawValue) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+const writeStoredValue = (key, value) => {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+const profileForm = reactive({
+  fullName: '',
+  email: '',
+  companyName: '',
 })
 
 const passwordForm = reactive({
@@ -22,7 +47,7 @@ const passwordVisibility = reactive({
   confirm: false,
 })
 
-const notificationSettings = ref([
+const defaultNotificationSettings = [
   {
     id: 'email',
     title: 'Email Notifications',
@@ -51,9 +76,13 @@ const notificationSettings = ref([
     enabled: true,
     icon: 'calendar',
   },
-])
+]
 
-const twoFactorEnabled = ref(true)
+const notificationSettings = ref(
+  readStoredValue(STORAGE_KEYS.notifications, defaultNotificationSettings),
+)
+
+const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, true))
 const saveMessage = ref('')
 
 const titleCaseWord = (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -71,6 +100,14 @@ const formatNameFromEmail = (email) => {
 }
 
 const syncProfileForm = () => {
+  const storedProfile = readStoredValue(STORAGE_KEYS.profile, null)
+  if (storedProfile) {
+    profileForm.fullName = storedProfile.fullName ?? ''
+    profileForm.email = storedProfile.email ?? ''
+    profileForm.companyName = storedProfile.companyName ?? ''
+    return
+  }
+
   const user = authStore.user
 
   if (!user) return
@@ -85,18 +122,30 @@ const syncProfileForm = () => {
 
 syncProfileForm()
 
+const displayProfile = computed(() => ({
+  fullName: profileForm.fullName.trim() || fallbackProfile.fullName,
+  email: profileForm.email.trim() || fallbackProfile.email,
+  companyName: profileForm.companyName.trim() || fallbackProfile.companyName,
+}))
+
 const userInitials = computed(() =>
-  profileForm.fullName
+  displayProfile.value.fullName
+    .trim()
     .split(' ')
-    .map((part) => part[0])
     .filter(Boolean)
+    .map((part) => part[0])
     .slice(0, 2)
     .join('')
     .toUpperCase(),
 )
 
 const saveProfile = () => {
-  saveMessage.value = 'Changes saved successfully.'
+  writeStoredValue(STORAGE_KEYS.profile, {
+    fullName: profileForm.fullName.trim(),
+    email: profileForm.email.trim(),
+    companyName: profileForm.companyName.trim(),
+  })
+  saveMessage.value = 'Changes saved locally on this device.'
 }
 
 const togglePasswordVisibility = (field) => {
@@ -107,7 +156,13 @@ const toggleNotification = (settingId) => {
   const setting = notificationSettings.value.find((item) => item.id === settingId)
   if (setting) {
     setting.enabled = !setting.enabled
+    writeStoredValue(STORAGE_KEYS.notifications, notificationSettings.value)
   }
+}
+
+const toggleTwoFactor = () => {
+  twoFactorEnabled.value = !twoFactorEnabled.value
+  writeStoredValue(STORAGE_KEYS.twoFactor, twoFactorEnabled.value)
 }
 </script>
 
@@ -138,8 +193,8 @@ const toggleNotification = (settingId) => {
         <div class="profile-chip">
           <div class="profile-avatar">{{ userInitials }}</div>
           <div>
-            <p class="profile-name">{{ profileForm.fullName }}</p>
-            <p class="profile-company">{{ profileForm.companyName }}</p>
+            <p class="profile-name">{{ displayProfile.fullName }}</p>
+            <p class="profile-company">{{ displayProfile.companyName }}</p>
           </div>
         </div>
       </div>
@@ -170,17 +225,32 @@ const toggleNotification = (settingId) => {
         <form class="form-stack" @submit.prevent="saveProfile">
           <label class="field">
             <span>Full Name</span>
-            <input v-model="profileForm.fullName" type="text" autocomplete="name" />
+            <input
+              v-model="profileForm.fullName"
+              type="text"
+              autocomplete="name"
+              :placeholder="fallbackProfile.fullName"
+            />
           </label>
 
           <label class="field">
             <span>Email Address</span>
-            <input v-model="profileForm.email" type="email" autocomplete="email" />
+            <input
+              v-model="profileForm.email"
+              type="email"
+              autocomplete="email"
+              :placeholder="fallbackProfile.email"
+            />
           </label>
 
           <label class="field">
             <span>Company Name</span>
-            <input v-model="profileForm.companyName" type="text" autocomplete="organization" />
+            <input
+              v-model="profileForm.companyName"
+              type="text"
+              autocomplete="organization"
+              :placeholder="fallbackProfile.companyName"
+            />
           </label>
 
           <div class="card-footer">
@@ -204,11 +274,6 @@ const toggleNotification = (settingId) => {
         </div>
 
         <form class="form-stack" @submit.prevent>
-          <label class="sr-only">
-            <span>Account Email</span>
-            <input v-model="profileForm.email" type="email" autocomplete="username" />
-          </label>
-
           <label class="field">
             <span>Current Password</span>
             <div class="password-field">
@@ -217,6 +282,7 @@ const toggleNotification = (settingId) => {
                 :type="passwordVisibility.current ? 'text' : 'password'"
                 autocomplete="current-password"
                 placeholder="••••••••"
+                readonly
               />
               <button
                 class="icon-button"
@@ -240,6 +306,7 @@ const toggleNotification = (settingId) => {
                 :type="passwordVisibility.next ? 'text' : 'password'"
                 autocomplete="new-password"
                 placeholder="••••••••"
+                readonly
               />
               <button
                 class="icon-button"
@@ -263,6 +330,7 @@ const toggleNotification = (settingId) => {
                 :type="passwordVisibility.confirm ? 'text' : 'password'"
                 autocomplete="new-password"
                 placeholder="••••••••"
+                readonly
               />
               <button
                 class="icon-button"
@@ -290,11 +358,12 @@ const toggleNotification = (settingId) => {
               :class="{ 'is-enabled': twoFactorEnabled }"
               type="button"
               :aria-pressed="twoFactorEnabled"
-              @click="twoFactorEnabled = !twoFactorEnabled"
+              @click="toggleTwoFactor"
             >
               <span></span>
             </button>
           </div>
+          <p class="helper-text">Security changes are stored as a local preference in this build.</p>
         </form>
       </article>
 
@@ -378,8 +447,11 @@ const toggleNotification = (settingId) => {
           <div>
             <h3>Delete Account</h3>
             <p>Once you delete your account, there is no going back. Please be certain.</p>
+            <p class="helper-text helper-text--danger">
+              Account deletion requires backend support and is not available yet.
+            </p>
           </div>
-          <button class="danger-button" type="button">
+          <button class="danger-button danger-button--disabled" type="button" disabled>
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M4 7h16" />
               <path d="M9 7V5h6v2" />
@@ -402,17 +474,7 @@ const toggleNotification = (settingId) => {
   gap: 28px;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+
 
 .settings-toolbar {
   display: flex;
@@ -725,6 +787,16 @@ const toggleNotification = (settingId) => {
   font-weight: 600;
 }
 
+.helper-text {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.helper-text--danger {
+  color: #b91c1c;
+}
+
 .divider {
   height: 1px;
   background: rgba(226, 232, 240, 1);
@@ -823,6 +895,12 @@ const toggleNotification = (settingId) => {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
   white-space: nowrap;
+}
+
+.danger-button--disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  box-shadow: none;
 }
 
 @media (max-width: 1199px) {
