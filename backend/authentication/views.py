@@ -2,8 +2,14 @@ from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterSerializer, UserSerializer, CustomTokenObtainPairSerializer
-from .models import CampainUser
+from .serializers import (
+    RegisterSerializer,
+    UserSerializer,
+    CustomTokenObtainPairSerializer,
+    UserWithProfileSerializer,
+    UserWithProfileUpdateSerializer,
+)
+from .models import CampainUser, UserProfile
 
 
 class RegisterView(generics.CreateAPIView):
@@ -37,10 +43,20 @@ class LoginView(TokenObtainPairView):
         return response
 
 
-class UserProfileView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
+class UserProfileView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method in ('PUT', 'PATCH'):
+            return UserWithProfileUpdateSerializer
+        return UserWithProfileSerializer
 
     def get_object(self):
         return self.request.user
+
+    def perform_destroy(self, instance):
+        try:
+            instance.profile.delete()
+        except UserProfile.DoesNotExist:
+            pass
 

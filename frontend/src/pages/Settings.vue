@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import api from '../services/api'
 
 const authStore = useAuthStore()
 
 const STORAGE_KEYS = {
-  SETTINGS_PROFILE: 'settings_profile',
   SETTINGS_NOTIFICATIONS: 'settings_notifications',
   SETTINGS_TWO_FACTOR: 'settings_two_factor',
 }
@@ -13,13 +13,16 @@ const STORAGE_KEYS = {
 const fallbackProfile = {
   fullName: 'User Name',
   email: 'user@example.com',
-  companyName: 'Company Name',
 }
 
 const UI_MESSAGES = {
-  profileSaved: 'Changes saved locally on this device.',
+  profileSaved: 'Profile updated successfully.',
+  profileDeleted: 'Profile deleted successfully.',
+  profileLoadFailed: 'Unable to load profile data.',
+  profileSaveFailed: 'Unable to save profile changes.',
+  profileDeleteFailed: 'Unable to delete profile.',
   securityNote: 'Security changes are stored as local preferences in this version.',
-  deleteUnavailable: 'Account deletion requires backend support and is not available yet.',
+  confirmDeleteProfile: 'Are you sure you want to delete your profile?',
 }
 
 const MAX_NOTIFICATION_BADGE_COUNT = 3
@@ -43,9 +46,11 @@ const writeStoredValue = (key, value) => {
 }
 
 const profileForm = reactive({
-  fullName: '',
+  firstName: '',
+  lastName: '',
   email: '',
-  companyName: '',
+  dateOfBirth: '',
+  bio: '',
 })
 
 const defaultNotificationSettings = [
@@ -85,7 +90,12 @@ const notificationSettings = ref(
 
 const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.SETTINGS_TWO_FACTOR, false))
 const saveMessage = ref('')
+const saveMessageType = ref('success')
 const saveMessageTimeoutId = ref(null)
+const isProfileLoading = ref(false)
+const isProfileSaving = ref(false)
+const isProfileDeleting = ref(false)
+const showDeleteModal = ref(false)
 
 const capitalizeWord = (word) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -102,29 +112,38 @@ const formatNameFromEmail = (email) => {
   return words.map(capitalizeWord).join(' ')
 }
 
-const syncProfileForm = () => {
-  const storedProfile = readStoredValue(STORAGE_KEYS.SETTINGS_PROFILE, null)
-  if (storedProfile) {
-    profileForm.fullName = storedProfile.fullName ?? ''
-    profileForm.email = storedProfile.email ?? ''
-    profileForm.companyName = storedProfile.companyName ?? ''
-    return
+const setStatusMessage = (message, type = 'success') => {
+  saveMessage.value = message
+  saveMessageType.value = type
+  if (saveMessageTimeoutId.value) {
+    clearTimeout(saveMessageTimeoutId.value)
   }
-
-  const user = authStore.user
-
-  if (!user) return
-
-  const firstName = user.first_name?.trim() ?? ''
-  const lastName = user.last_name?.trim() ?? ''
-  const fullName = [firstName, lastName].filter(Boolean).join(' ')
-
-  profileForm.fullName = fullName || formatNameFromEmail(user.email ?? '')
-  profileForm.email = user.email ?? profileForm.email
+  saveMessageTimeoutId.value = window.setTimeout(() => {
+    saveMessage.value = ''
+  }, 3000)
 }
 
-onMounted(() => {
-  syncProfileForm()
+const syncProfileForm = async () => {
+  isProfileLoading.value = true
+  try {
+    const user = await authStore.getProfile()
+    const profile = user.profile ?? {}
+
+    profileForm.firstName = profile.first_name ?? user.first_name ?? ''
+    profileForm.lastName = profile.last_name ?? user.last_name ?? ''
+    profileForm.email = user.email ?? ''
+    profileForm.dateOfBirth = profile.date_of_birth ?? ''
+    profileForm.bio = profile.bio ?? ''
+  } catch (error) {
+    console.error('Unable to load profile', error)
+    setStatusMessage(UI_MESSAGES.profileLoadFailed, 'error')
+  } finally {
+    isProfileLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await syncProfileForm()
 })
 
 onUnmounted(() => {
@@ -134,9 +153,11 @@ onUnmounted(() => {
 })
 
 const displayProfile = computed(() => ({
-  fullName: profileForm.fullName.trim() || fallbackProfile.fullName,
+  fullName:
+    `${profileForm.firstName} ${profileForm.lastName}`.trim() ||
+    formatNameFromEmail(profileForm.email) ||
+    fallbackProfile.fullName,
   email: profileForm.email.trim() || fallbackProfile.email,
-  companyName: profileForm.companyName.trim() || fallbackProfile.companyName,
 }))
 
 const notificationCount = computed(() =>
@@ -157,19 +178,59 @@ const userInitials = computed(() =>
     .toUpperCase(),
 )
 
-const saveProfile = () => {
-  writeStoredValue(STORAGE_KEYS.SETTINGS_PROFILE, {
-    fullName: profileForm.fullName.trim(),
-    email: profileForm.email.trim(),
-    companyName: profileForm.companyName.trim(),
-  })
-  saveMessage.value = UI_MESSAGES.profileSaved
-  if (saveMessageTimeoutId.value) {
-    clearTimeout(saveMessageTimeoutId.value)
+const saveProfile = async () => {
+  isProfileSaving.value = true
+  try {
+    await api.patch('/auth/profile/', {
+      first_name: profileForm.firstName.trim(),
+      last_name: profileForm.lastName.trim(),
+      email: profileForm.email.trim(),
+      date_of_birth: profileForm.dateOfBirth || null,
+      bio: profileForm.bio,
+    })
+    await syncProfileForm()
+    setStatusMessage(UI_MESSAGES.profileSaved)
+  } catch (error) {
+    console.error('Unable to save profile', error)
+    setStatusMessage(UI_MESSAGES.profileSaveFailed, 'error')
+  } finally {
+    isProfileSaving.value = false
   }
-  saveMessageTimeoutId.value = window.setTimeout(() => {
-    saveMessage.value = ''
-  }, 3000)
+}
+
+const deleteProfile = async () => {
+  isProfileDeleting.value = true
+  try {
+    await api.delete('/auth/profile/')
+
+    profileForm.firstName = ''
+    profileForm.lastName = ''
+    profileForm.email = authStore.user?.email ?? ''
+    profileForm.dateOfBirth = ''
+    profileForm.bio = ''
+
+    setStatusMessage(UI_MESSAGES.profileDeleted)
+  } catch (error) {
+    console.error('Unable to delete profile', error)
+    setStatusMessage(UI_MESSAGES.profileDeleteFailed, 'error')
+  } finally {
+    isProfileDeleting.value = false
+    showDeleteModal.value = false
+  }
+}
+
+const openDeleteModal = () => {
+  if (isProfileLoading.value || isProfileSaving.value || isProfileDeleting.value) {
+    return
+  }
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  if (isProfileDeleting.value) {
+    return
+  }
+  showDeleteModal.value = false
 }
 
 const toggleNotification = (settingId) => {
@@ -224,7 +285,7 @@ const toggleTwoFactor = () => {
           <div class="profile-avatar">{{ userInitials }}</div>
           <div>
             <p class="profile-name">{{ displayProfile.fullName }}</p>
-            <p class="profile-company">{{ displayProfile.companyName }}</p>
+            <p class="profile-company">{{ displayProfile.email }}</p>
           </div>
         </div>
       </div>
@@ -248,18 +309,30 @@ const toggleTwoFactor = () => {
           </div>
           <div>
             <h2>Profile</h2>
-            <p>Update your personal and company information.</p>
+            <p>Update your personal profile information.</p>
           </div>
         </div>
 
         <form class="form-stack" @submit.prevent="saveProfile">
           <label class="field">
-            <span>Full Name</span>
+            <span>First Name</span>
             <input
-              v-model="profileForm.fullName"
+              v-model="profileForm.firstName"
               type="text"
-              autocomplete="name"
-              :placeholder="fallbackProfile.fullName"
+              autocomplete="given-name"
+              placeholder="First name"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
+            />
+          </label>
+
+          <label class="field">
+            <span>Last Name</span>
+            <input
+              v-model="profileForm.lastName"
+              type="text"
+              autocomplete="family-name"
+              placeholder="Last name"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
             />
           </label>
 
@@ -270,22 +343,46 @@ const toggleTwoFactor = () => {
               type="email"
               autocomplete="email"
               :placeholder="fallbackProfile.email"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
             />
           </label>
 
           <label class="field">
-            <span>Company Name</span>
+            <span>Date of Birth</span>
             <input
-              v-model="profileForm.companyName"
-              type="text"
-              autocomplete="organization"
-              :placeholder="fallbackProfile.companyName"
+              v-model="profileForm.dateOfBirth"
+              type="date"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
             />
           </label>
 
+          <label class="field">
+            <span>Bio</span>
+            <textarea
+              v-model="profileForm.bio"
+              rows="4"
+              placeholder="Tell us something about you"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
+            ></textarea>
+          </label>
+
+          <p v-if="isProfileLoading" class="helper-text">Loading profile...</p>
+
           <div class="card-footer">
-            <button class="primary-button" type="submit">Save Changes</button>
-            <p v-if="saveMessage" class="status-message" role="status" aria-live="polite">
+            <button
+              class="primary-button"
+              type="submit"
+              :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
+            >
+              {{ isProfileSaving ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <p
+              v-if="saveMessage"
+              class="status-message"
+              :class="{ 'status-message--error': saveMessageType === 'error' }"
+              role="status"
+              aria-live="polite"
+            >
               {{ saveMessage }}
             </p>
           </div>
@@ -474,11 +571,15 @@ const toggleTwoFactor = () => {
 
         <div class="danger-panel">
           <div>
-            <h3>Delete Account</h3>
-            <p>Once you delete your account, there is no going back. Please be certain.</p>
-            <p class="helper-text helper-text--danger">{{ UI_MESSAGES.deleteUnavailable }}</p>
+            <h3>Delete Profile</h3>
+            <p>Delete your profile record. Your user account will stay active.</p>
           </div>
-          <button class="danger-button danger-button--disabled" type="button" disabled>
+          <button
+            class="danger-button"
+            type="button"
+            :disabled="isProfileLoading || isProfileSaving || isProfileDeleting"
+            @click="openDeleteModal"
+          >
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M4 7h16" />
               <path d="M9 7V5h6v2" />
@@ -487,10 +588,37 @@ const toggleTwoFactor = () => {
               <path d="M16 10v7" />
               <path d="M6 7l1 12h10l1-12" />
             </svg>
-            Delete Account
+            {{ isProfileDeleting ? 'Deleting...' : 'Delete Profile' }}
           </button>
         </div>
       </article>
+    </div>
+
+    <div
+      v-if="showDeleteModal"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-profile-title"
+      aria-describedby="delete-profile-description"
+      @click.self="closeDeleteModal"
+    >
+      <div class="modal-card">
+        <h3 id="delete-profile-title">Delete Profile</h3>
+        <p id="delete-profile-description">
+          {{ UI_MESSAGES.confirmDeleteProfile }}
+          Your user account will stay active.
+        </p>
+
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" :disabled="isProfileDeleting" @click="closeDeleteModal">
+            Cancel
+          </button>
+          <button class="danger-button" type="button" :disabled="isProfileDeleting" @click="deleteProfile">
+            {{ isProfileDeleting ? 'Deleting...' : 'Yes, Delete' }}
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -757,7 +885,27 @@ const toggleTwoFactor = () => {
   box-sizing: border-box;
 }
 
+.field textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(209, 213, 219, 0.95);
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
 .field input:focus {
+  border-color: rgba(27, 154, 93, 0.7);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+
+.field textarea:focus {
   border-color: rgba(27, 154, 93, 0.7);
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
 }
@@ -805,16 +953,39 @@ const toggleTwoFactor = () => {
   cursor: pointer;
 }
 
+.secondary-button {
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(209, 213, 219, 0.95);
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .primary-button {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: #ffffff;
   box-shadow: 0 14px 24px rgba(34, 197, 94, 0.2);
 }
 
+.primary-button:disabled,
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
 .status-message {
   margin: 0;
   color: #15803d;
   font-weight: 600;
+}
+
+.status-message--error {
+  color: #b91c1c;
 }
 
 .helper-text {
@@ -927,10 +1098,45 @@ const toggleTwoFactor = () => {
   white-space: nowrap;
 }
 
-.danger-button--disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-  box-shadow: none;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  width: min(100%, 460px);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(254, 202, 202, 0.95);
+  background: #ffffff;
+  box-shadow: 0 24px 46px rgba(15, 23, 42, 0.2);
+  display: grid;
+  gap: 14px;
+}
+
+.modal-card h3 {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 1.3rem;
+}
+
+.modal-card p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 @media (max-width: 1199px) {
@@ -984,6 +1190,11 @@ const toggleTwoFactor = () => {
 
   .notification-copy {
     align-items: flex-start;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
 }
 </style>

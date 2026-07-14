@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from .models import CampainUser
+from .models import CampainUser, UserProfile
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -59,3 +59,64 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CampainUser
         fields = ('id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff')
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ('first_name', 'last_name', 'date_of_birth', 'bio')
+
+
+class UserWithProfileSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CampainUser
+        fields = ('id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff', 'profile')
+
+    def get_profile(self, obj):
+        try:
+            return UserProfileSerializer(obj.profile).data
+        except UserProfile.DoesNotExist:
+            return None
+
+
+class UserWithProfileUpdateSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    bio = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        user = self.instance
+        if CampainUser.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value
+
+    def update(self, instance, validated_data):
+        profile_fields = ('first_name', 'last_name', 'date_of_birth', 'bio')
+
+        for field in ('email', 'first_name', 'last_name'):
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+        instance.save()
+
+        if any(field in validated_data for field in profile_fields):
+            profile, _ = UserProfile.objects.get_or_create(user=instance)
+
+            if 'first_name' in validated_data:
+                profile.first_name = validated_data['first_name']
+            if 'last_name' in validated_data:
+                profile.last_name = validated_data['last_name']
+            if 'date_of_birth' in validated_data:
+                profile.date_of_birth = validated_data['date_of_birth']
+            if 'bio' in validated_data:
+                profile.bio = validated_data['bio']
+
+            profile.save()
+
+        return instance
+
+    def to_representation(self, instance):
+        return UserWithProfileSerializer(instance).data
