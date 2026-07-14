@@ -11,9 +11,9 @@ const STORAGE_KEYS = {
 }
 
 const fallbackProfile = {
-  fullName: 'John Doe',
-  email: 'john.doe@acme.com',
-  companyName: 'Acme Ltd.',
+  fullName: 'User Name',
+  email: 'user@example.com',
+  companyName: 'Company Name',
 }
 
 const UI_MESSAGES = {
@@ -97,7 +97,7 @@ const formatNameFromEmail = (email) => {
     .map((word) => word.trim())
     .filter(Boolean)
 
-  if (!words.length) return 'John Doe'
+  if (!words.length) return fallbackProfile.fullName
 
   return words.map(capitalizeFirstLetter).join(' ')
 }
@@ -140,7 +140,10 @@ const displayProfile = computed(() => ({
 }))
 
 const notificationCount = computed(() =>
-  Math.min(MAX_NOTIFICATION_BADGE_COUNT, notificationSettings.value.length),
+  Math.min(
+    MAX_NOTIFICATION_BADGE_COUNT,
+    notificationSettings.value.filter((setting) => setting.enabled).length,
+  ),
 )
 
 const userInitials = computed(() =>
@@ -161,7 +164,9 @@ const saveProfile = () => {
     companyName: profileForm.companyName.trim(),
   })
   saveMessage.value = UI_MESSAGES.profileSaved
-  clearTimeout(saveMessageTimeoutId.value)
+  if (saveMessageTimeoutId.value) {
+    clearTimeout(saveMessageTimeoutId.value)
+  }
   saveMessageTimeoutId.value = window.setTimeout(() => {
     saveMessage.value = ''
   }, 3000)
@@ -198,7 +203,7 @@ const toggleTwoFactor = () => {
           aria-label="Search disabled"
           disabled
         />
-        <span class="shortcut">⌘ K</span>
+        <span class="shortcut">Cmd/Ctrl + K</span>
       </label>
 
       <div class="toolbar-actions">
