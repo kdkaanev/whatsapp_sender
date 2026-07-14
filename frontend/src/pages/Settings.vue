@@ -5,9 +5,9 @@ import { useAuthStore } from '../stores/auth'
 const authStore = useAuthStore()
 
 const STORAGE_KEYS = {
-  profile: 'settings_profile',
-  notifications: 'settings_notifications',
-  twoFactor: 'settings_two_factor',
+  SETTINGS_PROFILE: 'settings_profile',
+  SETTINGS_NOTIFICATIONS: 'settings_notifications',
+  SETTINGS_TWO_FACTOR: 'settings_two_factor',
 }
 
 const fallbackProfile = {
@@ -80,14 +80,14 @@ const defaultNotificationSettings = [
 ]
 
 const notificationSettings = ref(
-  readStoredValue(STORAGE_KEYS.notifications, defaultNotificationSettings),
+  readStoredValue(STORAGE_KEYS.SETTINGS_NOTIFICATIONS, defaultNotificationSettings),
 )
 
-const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.twoFactor, false))
+const twoFactorEnabled = ref(readStoredValue(STORAGE_KEYS.SETTINGS_TWO_FACTOR, false))
 const saveMessage = ref('')
 const saveMessageTimeoutId = ref(null)
 
-const capitalizeFirstLetter = (word) =>
+const capitalizeWord = (word) =>
   word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 
 const formatNameFromEmail = (email) => {
@@ -99,11 +99,11 @@ const formatNameFromEmail = (email) => {
 
   if (!words.length) return fallbackProfile.fullName
 
-  return words.map(capitalizeFirstLetter).join(' ')
+  return words.map(capitalizeWord).join(' ')
 }
 
 const syncProfileForm = () => {
-  const storedProfile = readStoredValue(STORAGE_KEYS.profile, null)
+  const storedProfile = readStoredValue(STORAGE_KEYS.SETTINGS_PROFILE, null)
   if (storedProfile) {
     profileForm.fullName = storedProfile.fullName ?? ''
     profileForm.email = storedProfile.email ?? ''
@@ -158,7 +158,7 @@ const userInitials = computed(() =>
 )
 
 const saveProfile = () => {
-  writeStoredValue(STORAGE_KEYS.profile, {
+  writeStoredValue(STORAGE_KEYS.SETTINGS_PROFILE, {
     fullName: profileForm.fullName.trim(),
     email: profileForm.email.trim(),
     companyName: profileForm.companyName.trim(),
@@ -176,13 +176,13 @@ const toggleNotification = (settingId) => {
   const setting = notificationSettings.value.find((item) => item.id === settingId)
   if (setting) {
     setting.enabled = !setting.enabled
-    writeStoredValue(STORAGE_KEYS.notifications, notificationSettings.value)
+    writeStoredValue(STORAGE_KEYS.SETTINGS_NOTIFICATIONS, notificationSettings.value)
   }
 }
 
 const toggleTwoFactor = () => {
   twoFactorEnabled.value = !twoFactorEnabled.value
-  writeStoredValue(STORAGE_KEYS.twoFactor, twoFactorEnabled.value)
+  writeStoredValue(STORAGE_KEYS.SETTINGS_TWO_FACTOR, twoFactorEnabled.value)
 }
 </script>
 
@@ -500,8 +500,6 @@ const toggleTwoFactor = () => {
   display: grid;
   gap: 28px;
 }
-
-
 
 .settings-toolbar {
   display: flex;
