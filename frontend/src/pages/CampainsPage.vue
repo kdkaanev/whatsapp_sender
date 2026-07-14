@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import router from '../router'
 
 import { useCampaignStore } from '../stores/campaigns'
@@ -26,6 +26,7 @@ const isDeletingCampaign = ref(false)
 const isPageLoading = ref(false)
 const pageError = ref('')
 const campaignStatsById = ref({})
+const pendingRefreshTimers = ref([])
 
 const filterTabs = ['All Campaigns', 'Sent', 'Scheduled', 'Drafts', 'Failed']
 
@@ -221,6 +222,23 @@ onMounted(() => {
   loadCampaignData()
 })
 
+onBeforeUnmount(() => {
+  pendingRefreshTimers.value.forEach((timerId) => clearTimeout(timerId))
+  pendingRefreshTimers.value = []
+})
+
+const queueStatusRefresh = () => {
+  const firstTimer = setTimeout(() => {
+    loadCampaignData()
+  }, 2500)
+
+  const secondTimer = setTimeout(() => {
+    loadCampaignData()
+  }, 7000)
+
+  pendingRefreshTimers.value.push(firstTimer, secondTimer)
+}
+
 const selectTab = (tab) => {
   activeTab.value = tab
   currentPage.value = 1
@@ -297,8 +315,8 @@ const saveCampaign = async () => {
       description: updatedCampaign.description ?? '',
       status: (updatedCampaign.status ?? 'draft').toLowerCase(),
     }
-    modalMessage.value = 'Campaign updated successfully.'
     await loadCampaignData()
+    closeCampaignModal()
   } catch (error) {
     modalError.value = error.response?.data?.message ?? error.message ?? 'Unable to update campaign.'
   } finally {
@@ -322,8 +340,10 @@ const sendSelectedCampaign = async () => {
   modalMessage.value = ''
 
   try {
-    const response = await campaignStore.sendWhatsApp(selectedCampaign.value.id, campaignForm.value.messageBody)
-    modalMessage.value = response.message ?? 'Campaign send started.'
+    await campaignStore.sendWhatsApp(selectedCampaign.value.id, campaignForm.value.messageBody)
+    await loadCampaignData()
+    closeCampaignModal()
+    queueStatusRefresh()
   } catch (error) {
     modalError.value = error.response?.data?.error ?? error.message ?? 'Unable to send campaign.'
   } finally {

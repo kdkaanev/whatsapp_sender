@@ -233,6 +233,36 @@ class MessageStatisticsView(views.APIView):
         }, status=status.HTTP_200_OK)
 
 
+class DashboardStatisticsView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        total_contacts = Contact.objects.filter(user=user).count()
+
+        campaigns = Campain.objects.filter(user=user)
+        total_campaigns = campaigns.count()
+        active_campaigns = campaigns.filter(status='active').count()
+
+        messages = Message.objects.filter(campain__user=user)
+        delivered_count = messages.filter(status='delivered').count()
+        sent_count = messages.filter(status__in=['sent', 'delivered']).count()
+        attempted_count = messages.filter(status__in=['sent', 'delivered', 'failed']).count()
+
+        delivery_rate = round((delivered_count / attempted_count * 100), 2) if attempted_count > 0 else 0
+
+        return Response({
+            'total_contacts': total_contacts,
+            'campaigns': {
+                'total': total_campaigns,
+                'active': active_campaigns,
+            },
+            'messages_sent': sent_count,
+            'delivery_rate': delivery_rate,
+        }, status=status.HTTP_200_OK)
+
+
 class MessageByCampaignView(generics.ListAPIView):
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]

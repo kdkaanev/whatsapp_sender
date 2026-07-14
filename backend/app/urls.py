@@ -4,11 +4,14 @@ from .views import (
     CampainCreateView, CampainListView, CampainDetailView,
     TemplateCreateView, TemplateListView, TemplateDetailView,
     SendSMSView, SendWhatsAppView, TaskStatusView,
-    MessageListView, MessageStatisticsView, MessageByCampaignView
+    MessageListView, MessageStatisticsView, MessageByCampaignView,
+    DashboardStatisticsView
 )
 from .import_views import ContactImportView
 
 urlpatterns = [
+    path('dashboard/stats/', DashboardStatisticsView.as_view(), name='dashboard-stats'),
+
     # Contact endpoints
     path('contacts/', ContactListView.as_view(), name='contact-list'),
     path('contacts/create/', ContactCreateView.as_view(), name='contact-create'),

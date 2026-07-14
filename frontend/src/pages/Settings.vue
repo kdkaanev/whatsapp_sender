@@ -397,7 +397,7 @@ const toggleTwoFactor = () => {
             </svg>
           </div>
           <div>
-            <h2>Security</h2>
+            <h2>Security(toDo)</h2>
             <p>Change your password and secure your account.</p>
           </div>
         </div>
@@ -502,7 +502,7 @@ const toggleTwoFactor = () => {
             </svg>
           </div>
           <div>
-            <h2>Notifications</h2>
+            <h2>Notifications(ToDo)</h2>
             <p>Choose what you want to be notified about.</p>
           </div>
         </div>
