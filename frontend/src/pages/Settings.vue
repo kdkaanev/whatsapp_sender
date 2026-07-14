@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
@@ -83,17 +83,7 @@ const syncProfileForm = () => {
   profileForm.email = user.email ?? profileForm.email
 }
 
-onMounted(async () => {
-  if (!authStore.user && authStore.isAuthenticated) {
-    try {
-      await authStore.getProfile()
-    } catch {
-      return
-    }
-  }
-
-  syncProfileForm()
-})
+syncProfileForm()
 
 const userInitials = computed(() =>
   profileForm.fullName
@@ -180,17 +170,17 @@ const toggleNotification = (settingId) => {
         <form class="form-stack" @submit.prevent="saveProfile">
           <label class="field">
             <span>Full Name</span>
-            <input v-model="profileForm.fullName" type="text" />
+            <input v-model="profileForm.fullName" type="text" autocomplete="name" />
           </label>
 
           <label class="field">
             <span>Email Address</span>
-            <input v-model="profileForm.email" type="email" />
+            <input v-model="profileForm.email" type="email" autocomplete="email" />
           </label>
 
           <label class="field">
             <span>Company Name</span>
-            <input v-model="profileForm.companyName" type="text" />
+            <input v-model="profileForm.companyName" type="text" autocomplete="organization" />
           </label>
 
           <div class="card-footer">
@@ -214,12 +204,18 @@ const toggleNotification = (settingId) => {
         </div>
 
         <form class="form-stack" @submit.prevent>
+          <label class="sr-only">
+            <span>Account Email</span>
+            <input v-model="profileForm.email" type="email" autocomplete="username" tabindex="-1" />
+          </label>
+
           <label class="field">
             <span>Current Password</span>
             <div class="password-field">
               <input
                 v-model="passwordForm.current"
                 :type="passwordVisibility.current ? 'text' : 'password'"
+                autocomplete="current-password"
               />
               <button
                 class="icon-button"
@@ -241,6 +237,7 @@ const toggleNotification = (settingId) => {
               <input
                 v-model="passwordForm.next"
                 :type="passwordVisibility.next ? 'text' : 'password'"
+                autocomplete="new-password"
               />
               <button
                 class="icon-button"
@@ -262,6 +259,7 @@ const toggleNotification = (settingId) => {
               <input
                 v-model="passwordForm.confirm"
                 :type="passwordVisibility.confirm ? 'text' : 'password'"
+                autocomplete="new-password"
               />
               <button
                 class="icon-button"
@@ -399,6 +397,18 @@ const toggleNotification = (settingId) => {
 .settings-page {
   display: grid;
   gap: 28px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .settings-toolbar {
