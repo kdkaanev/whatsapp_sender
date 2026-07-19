@@ -1,195 +1,60 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useTemplateStore } from '../stores/templates'
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-const allTemplates = ref([
-  {
-    id: 1,
-    name: 'Welcome Message',
-    category: 'Welcome',
-    favorite: true,
-    body: 'Здравейте {{name}},👋\n\nБлагодарим Ви, че се свързахте с нас!\nЩе се радваме да Ви помогнем.',
-    usedTimes: 34,
-    updatedAgo: '2 days ago',
-  },
-  {
-    id: 2,
-    name: 'Promo 15% Off',
-    category: 'Promotion',
-    favorite: false,
-    body: 'Здравейте {{name}},🎉\n\nПолучавате 15% отстъпка на всички продукти този уикенд.\n\nПромокод: SAVE15\nВалидно до {{date}}.',
-    usedTimes: 18,
-    updatedAgo: '5 days ago',
-  },
-  {
-    id: 3,
-    name: 'Reminder Appointment',
-    category: 'Reminder',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nНапомняме Ви за предстоящата ни среща на {{date}} в {{time}}.\n\nОчакваме Ви!',
-    usedTimes: 12,
-    updatedAgo: '1 week ago',
-  },
-  {
-    id: 4,
-    name: 'Payment Reminder',
-    category: 'Reminder',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nТова е приятелско напомняне за предстоящото Ви плащане в размер на {{amount}} лв.\n\nБлагодарим Ви!',
-    usedTimes: 9,
-    updatedAgo: '1 week ago',
-  },
-  {
-    id: 5,
-    name: 'Thank You',
-    category: 'Welcome',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nБлагодарим за доверието!\nОчакваме Ви отново.',
-    usedTimes: 25,
-    updatedAgo: '1 week ago',
-  },
-  {
-    id: 6,
-    name: 'New Collection',
-    category: 'Promotion',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nРазгледайте нашата нова колекция продукти. 🌟\n\nВижте повече тук: {{link}}',
-    usedTimes: 16,
-    updatedAgo: '2 weeks ago',
-  },
-  {
-    id: 7,
-    name: 'Feedback Request',
-    category: 'Follow Up',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nЩе се радваме да чуем Вашето мнение за нашето обслужване.\n\nБлагодарим!',
-    usedTimes: 7,
-    updatedAgo: '2 weeks ago',
-  },
-  {
-    id: 8,
-    name: 'Happy Birthday',
-    category: 'Other',
-    favorite: false,
-    body: 'Честит рожден ден, {{name}}! 🎂\n\nПожелаваме Ви здраве, щастие и прекрасен ден!',
-    usedTimes: 4,
-    updatedAgo: '3 weeks ago',
-  },
-  {
-    id: 9,
-    name: 'Order Confirmed',
-    category: 'Other',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nВашата поръчка #{{order_id}} е потвърдена и се обработва.\n\nБлагодарим Ви!',
-    usedTimes: 21,
-    updatedAgo: '3 weeks ago',
-  },
-  {
-    id: 10,
-    name: 'Follow Up After Meeting',
-    category: 'Follow Up',
-    favorite: false,
-    body: 'Здравейте {{name}},\n\nБлагодарим за срещата днес. Ще се свържем с Вас скоро с повече информация.',
-    usedTimes: 11,
-    updatedAgo: '1 month ago',
-  },
-  {
-    id: 11,
-    name: 'Special Offer',
-    category: 'Promotion',
-    favorite: true,
-    body: 'Здравейте {{name}},\n\nСамо за Вас — специална оферта от {{discount}}% за следващата поръчка!',
-    usedTimes: 30,
-    updatedAgo: '1 month ago',
-  },
-  {
-    id: 12,
-    name: 'Re-engagement',
-    category: 'Follow Up',
-    favorite: true,
-    body: 'Скучаем за Вас, {{name}}! 😊\n\nВижте какво ново сме подготвили специално за Вас.',
-    usedTimes: 14,
-    updatedAgo: '1 month ago',
-  },
-])
+const templateStore = useTemplateStore()
 
-// ── State ────────────────────────────────────────────────────────────────────
 const searchQuery = ref('')
-const activeTab = ref('All Templates')
-const selectedCategory = ref('')
-const sortBy = ref('Recently Updated')
+const sortBy = ref('Newest')
 const viewMode = ref('grid')
 const currentPage = ref(1)
 const pageSize = 8
+const activeMenuId = ref(null)
 
-const tabs = ['All Templates', 'Welcome', 'Promotions', 'Reminders', 'Follow Up', 'Other']
-const sortOptions = ['Recently Updated', 'Most Used', 'Alphabetical', 'Least Used']
+const isPageLoading = ref(false)
+const pageError = ref('')
+const selectedTemplate = ref(null)
+const isCreateMode = ref(false)
+const isSavingTemplate = ref(false)
+const isDeletingTemplate = ref(false)
+const modalError = ref('')
+const modalMessage = ref('')
+const templateForm = ref({
+  name: '',
+  content: '',
+})
 
-// ── Stats ────────────────────────────────────────────────────────────────────
-const stats = computed(() => [
-  {
-    icon: 'templates',
-    label: 'Total Templates',
-    value: allTemplates.value.length,
-    hint: '+3 this week',
-    hintColor: '#1b9a5d',
-  },
-  {
-    icon: 'used',
-    label: 'Used This Month',
-    // Static mock value — replace with real usage data from backend
-    value: 18,
-    hint: '75% of templates',
-    hintColor: '#6b7280',
-  },
-  {
-    icon: 'star',
-    label: 'Favorite Templates',
-    value: allTemplates.value.filter((t) => t.favorite).length,
-    hint: 'Marked as favorite',
-    hintColor: '#6b7280',
-  },
-  {
-    icon: 'tag',
-    label: 'Categories',
-    value: new Set(allTemplates.value.map((t) => t.category)).size,
-    hint: 'Template categories',
-    hintColor: '#6b7280',
-  },
-])
+const sortOptions = ['Newest', 'Oldest', 'Alphabetical', 'Longest', 'Shortest']
 
-// ── Filtering & sorting ──────────────────────────────────────────────────────
-const tabCategoryMap = {
-  'All Templates': null,
-  Welcome: 'Welcome',
-  Promotions: 'Promotion',
-  Reminders: 'Reminder',
-  'Follow Up': 'Follow Up',
-  Other: 'Other',
-}
+const normalizeTemplate = (template) => ({
+  ...template,
+  name: template.name ?? 'Untitled template',
+  content: template.content ?? '',
+})
+
+const normalizedTemplates = computed(() => templateStore.templates.map(normalizeTemplate))
 
 const filteredTemplates = computed(() => {
-  let list = allTemplates.value
-
-  // Tab filter
-  const tabCat = tabCategoryMap[activeTab.value]
-  if (tabCat) list = list.filter((t) => t.category === tabCat)
-
-  // Category dropdown filter
-  if (selectedCategory.value) list = list.filter((t) => t.category === selectedCategory.value)
-
-  // Search
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    list = list.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.body.toLowerCase().includes(q),
+  const query = searchQuery.value.trim().toLowerCase()
+  let list = normalizedTemplates.value.filter((template) => {
+    if (!query) return true
+    return (
+      template.name.toLowerCase().includes(query) ||
+      template.content.toLowerCase().includes(query)
     )
-  }
+  })
 
-  // Sort
-  if (sortBy.value === 'Most Used') list = [...list].sort((a, b) => b.usedTimes - a.usedTimes)
-  else if (sortBy.value === 'Least Used') list = [...list].sort((a, b) => a.usedTimes - b.usedTimes)
-  else if (sortBy.value === 'Alphabetical') list = [...list].sort((a, b) => a.name.localeCompare(b.name))
+  if (sortBy.value === 'Alphabetical') {
+    list = [...list].sort((a, b) => a.name.localeCompare(b.name))
+  } else if (sortBy.value === 'Oldest') {
+    list = [...list].sort((a, b) => a.id - b.id)
+  } else if (sortBy.value === 'Longest') {
+    list = [...list].sort((a, b) => b.content.length - a.content.length)
+  } else if (sortBy.value === 'Shortest') {
+    list = [...list].sort((a, b) => a.content.length - b.content.length)
+  } else {
+    list = [...list].sort((a, b) => b.id - a.id)
+  }
 
   return list
 })
@@ -205,67 +70,239 @@ const paginatedTemplates = computed(() => {
 const showingFrom = computed(() =>
   totalTemplates.value === 0 ? 0 : (currentPage.value - 1) * pageSize + 1,
 )
+
 const showingTo = computed(() => Math.min(currentPage.value * pageSize, totalTemplates.value))
+
+const totalCharacters = computed(() =>
+  normalizedTemplates.value.reduce((sum, template) => sum + template.content.length, 0),
+)
+
+const averageLength = computed(() => {
+  if (normalizedTemplates.value.length === 0) return 0
+  return Math.round(totalCharacters.value / normalizedTemplates.value.length)
+})
+
+const longestTemplate = computed(() => {
+  if (normalizedTemplates.value.length === 0) return null
+  return normalizedTemplates.value.reduce((longest, template) =>
+    template.content.length > longest.content.length ? template : longest,
+  )
+})
 
 const pageNumbers = computed(() => {
   const total = totalPages.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-  const cur = currentPage.value
+  if (total <= 5) return Array.from({ length: total }, (_, index) => index + 1)
+
+  const current = currentPage.value
   const pages = [1]
-  if (cur > 3) pages.push('...')
-  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
-  if (cur < total - 2) pages.push('...')
+  if (current > 3) pages.push('...')
+  for (let page = Math.max(2, current - 1); page <= Math.min(total - 1, current + 1); page += 1) {
+    pages.push(page)
+  }
+  if (current < total - 2) pages.push('...')
   pages.push(total)
   return pages
 })
 
-// ── Methods ──────────────────────────────────────────────────────────────────
-const setTab = (tab) => {
-  activeTab.value = tab
+const stats = computed(() => [
+  {
+    label: 'Total Templates',
+    value: normalizedTemplates.value.length,
+    hint: 'Templates in your library',
+  },
+  {
+    label: 'Characters Stored',
+    value: totalCharacters.value.toLocaleString(),
+    hint: 'Across all template bodies',
+  },
+  {
+    label: 'Average Length',
+    value: averageLength.value.toLocaleString(),
+    hint: 'Average characters per template',
+  },
+  {
+    label: 'Longest Template',
+    value: longestTemplate.value ? `${longestTemplate.value.content.length}` : '0',
+    hint: longestTemplate.value?.name ?? 'No templates yet',
+  },
+])
+
+const loadTemplates = async () => {
+  isPageLoading.value = true
+  pageError.value = ''
+
+  try {
+    await templateStore.getTemplates()
+  } catch (error) {
+    pageError.value = error.response?.data?.error ?? error.message ?? 'Unable to load templates.'
+  } finally {
+    isPageLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadTemplates()
+})
+
+const contentPreview = (content) => {
+  const compactContent = content.replace(/\s+/g, ' ').trim()
+  if (compactContent.length <= 140) return compactContent
+  return `${compactContent.slice(0, 137)}...`
+}
+
+const contentLineCount = (content) => {
+  if (!content) return 0
+  return content.split(/\r?\n/).length
+}
+
+const resetToFirstPage = () => {
   currentPage.value = 1
 }
 
-const goToPage = (p) => {
-  if (p === '...' || p < 1 || p > totalPages.value) return
-  currentPage.value = p
+const goToPage = (page) => {
+  if (page === '...' || page < 1 || page > totalPages.value) return
+  currentPage.value = page
 }
 
-const toggleFavorite = (template) => {
-  template.favorite = !template.favorite
-}
-
-const categoryClass = (category) => {
-  const map = {
-    Welcome: 'badge--welcome',
-    Promotion: 'badge--promo',
-    Reminder: 'badge--reminder',
-    'Follow Up': 'badge--followup',
-    Other: 'badge--other',
-  }
-  return map[category] ?? 'badge--default'
-}
-
-// Active menu
-const activeMenuId = ref(null)
-const toggleMenu = (id, event) => {
-  event.stopPropagation()
-  activeMenuId.value = activeMenuId.value === id ? null : id
-}
 const closeMenu = () => {
   activeMenuId.value = null
+}
+
+const toggleMenu = (templateId, event) => {
+  event.stopPropagation()
+  activeMenuId.value = activeMenuId.value === templateId ? null : templateId
+}
+
+const openCreateModal = () => {
+  isCreateMode.value = true
+  selectedTemplate.value = null
+  templateForm.value = { name: '', content: '' }
+  modalError.value = ''
+  modalMessage.value = ''
+  closeMenu()
+}
+
+const openTemplateModal = (template) => {
+  isCreateMode.value = false
+  selectedTemplate.value = template
+  templateForm.value = { name: template.name, content: template.content }
+  modalError.value = ''
+  modalMessage.value = ''
+  closeMenu()
+}
+
+const closeTemplateModal = () => {
+  isCreateMode.value = false
+  selectedTemplate.value = null
+  modalError.value = ''
+  modalMessage.value = ''
+}
+
+const activeTemplateId = computed(() => selectedTemplate.value?.id ?? null)
+const isModalOpen = computed(() => isCreateMode.value || selectedTemplate.value !== null)
+const modalTitle = computed(() => (activeTemplateId.value ? 'Edit template' : 'Create template'))
+
+const saveTemplate = async () => {
+  const payload = {
+    name: templateForm.value.name.trim(),
+    content: templateForm.value.content.trim(),
+  }
+
+  if (!payload.name || !payload.content) {
+    modalError.value = 'Template name and content are required.'
+    modalMessage.value = ''
+    return
+  }
+
+  isSavingTemplate.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    let savedTemplate
+
+    if (activeTemplateId.value) {
+      savedTemplate = await templateStore.updateTemplate(activeTemplateId.value, payload)
+      modalMessage.value = 'Template updated successfully.'
+    } else {
+      savedTemplate = await templateStore.createTemplate(payload)
+      modalMessage.value = 'Template created successfully.'
+    }
+
+    selectedTemplate.value = normalizeTemplate(savedTemplate)
+    isCreateMode.value = false
+    templateForm.value = {
+      name: selectedTemplate.value.name,
+      content: selectedTemplate.value.content,
+    }
+    resetToFirstPage()
+    await loadTemplates()
+  } catch (error) {
+    modalError.value =
+      error.response?.data?.message ?? error.response?.data?.error ?? error.message ?? 'Unable to save template.'
+  } finally {
+    isSavingTemplate.value = false
+  }
+}
+
+const deleteTemplate = async (template) => {
+  if (!template?.id) return
+
+  if (!confirm(`Delete "${template.name}"?`)) return
+
+  closeMenu()
+
+  try {
+    await templateStore.deleteTemplate(template.id)
+    if (selectedTemplate.value?.id === template.id) {
+      closeTemplateModal()
+    }
+    if (paginatedTemplates.value.length === 1 && currentPage.value > 1) {
+      currentPage.value -= 1
+    }
+  } catch (error) {
+    pageError.value =
+      error.response?.data?.message ?? error.response?.data?.error ?? error.message ?? 'Unable to delete template.'
+  }
+}
+
+const deleteSelectedTemplate = async () => {
+  if (!selectedTemplate.value?.id) {
+    modalError.value = 'This template cannot be deleted.'
+    return
+  }
+
+  if (!confirm(`Delete "${selectedTemplate.value.name}"?`)) return
+
+  isDeletingTemplate.value = true
+  modalError.value = ''
+  modalMessage.value = ''
+
+  try {
+    await templateStore.deleteTemplate(selectedTemplate.value.id)
+    closeTemplateModal()
+    if (paginatedTemplates.value.length === 1 && currentPage.value > 1) {
+      currentPage.value -= 1
+    }
+  } catch (error) {
+    modalError.value =
+      error.response?.data?.message ?? error.response?.data?.error ?? error.message ?? 'Unable to delete template.'
+  } finally {
+    isDeletingTemplate.value = false
+  }
 }
 </script>
 
 <template>
   <div class="templates-page" @click="closeMenu">
-    <!-- ── Page header ──────────────────────────────────────────────────── -->
-    <div class="page-header">
-      <div class="page-header-left">
+    <header class="page-header">
+      <div>
         <h1 class="page-title">Templates</h1>
-        <p class="page-subtitle">Create and manage your message templates</p>
+        <p class="page-subtitle">Create and manage reusable message templates.</p>
       </div>
+
       <div class="page-header-right">
-        <div class="search-wrap">
+        <label class="search-wrap">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -276,99 +313,44 @@ const closeMenu = () => {
             class="search-input"
             placeholder="Search templates..."
             aria-label="Search templates"
-            @input="currentPage = 1"
+            @input="resetToFirstPage"
           />
-        </div>
-        <button class="btn-primary" type="button">
+        </label>
+
+        <button class="btn-primary" type="button" @click="openCreateModal">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-            <path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M12 5v14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            <path d="M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
           </svg>
           New Template
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- ── Stats cards ─────────────────────────────────────────────────── -->
-    <div class="stats-grid">
-      <div v-for="stat in stats" :key="stat.label" class="stat-card">
-        <div class="stat-icon-wrap" :class="`stat-icon-wrap--${stat.icon}`">
-          <!-- Total Templates icon -->
-          <svg v-if="stat.icon === 'templates'" viewBox="0 0 24 24" fill="none">
-            <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M14 3v4a1 1 0 0 0 1 1h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            <path d="M9 13h6M9 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-          </svg>
-          <!-- Used This Month icon -->
-          <svg v-else-if="stat.icon === 'used'" viewBox="0 0 24 24" fill="none">
-            <path d="M22 2 11 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M22 2 15 22 11 13 2 9l20-7Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <!-- Favorite icon -->
-          <svg v-else-if="stat.icon === 'star'" viewBox="0 0 24 24" fill="none">
-            <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <!-- Categories icon -->
-          <svg v-else-if="stat.icon === 'tag'" viewBox="0 0 24 24" fill="none">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="7" cy="7" r="1" fill="currentColor" />
-          </svg>
-        </div>
-        <div class="stat-body">
-          <p class="stat-label">{{ stat.label }}</p>
-          <p class="stat-value">{{ stat.value }}</p>
-          <p class="stat-hint" :style="{ color: stat.hintColor }">{{ stat.hint }}</p>
-        </div>
-      </div>
-    </div>
+    <section class="stats-grid" aria-label="Template metrics">
+      <article v-for="stat in stats" :key="stat.label" class="stat-card">
+        <p class="stat-label">{{ stat.label }}</p>
+        <p class="stat-value">{{ stat.value }}</p>
+        <p class="stat-hint">{{ stat.hint }}</p>
+      </article>
+    </section>
 
-    <!-- ── Filter tabs + toolbar ───────────────────────────────────────── -->
-    <div class="filter-row">
-      <div class="tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          class="tab-btn"
-          :class="{ 'tab-btn--active': activeTab === tab }"
-          type="button"
-          @click="setTab(tab)"
-        >
-          {{ tab }}
-        </button>
+    <section class="toolbar">
+      <div class="toolbar-copy">
+        <strong>Template library</strong>
+        <span>Browse, edit, and delete saved templates.</span>
       </div>
 
-      <div class="toolbar-right">
-        <div class="select-wrap">
-          <svg class="select-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <select v-model="selectedCategory" class="filter-select" aria-label="Filter by category" @change="currentPage = 1">
-            <option value="">All Categories</option>
-            <option value="Welcome">Welcome</option>
-            <option value="Promotion">Promotion</option>
-            <option value="Reminder">Reminder</option>
-            <option value="Follow Up">Follow Up</option>
-            <option value="Other">Other</option>
+      <div class="toolbar-actions">
+        <label class="select-wrap">
+          <span class="visually-hidden">Sort templates</span>
+          <select v-model="sortBy" class="filter-select" @change="resetToFirstPage">
+            <option v-for="option in sortOptions" :key="option" :value="option">Sort: {{ option }}</option>
           </select>
-        </div>
-
-        <div class="select-wrap">
-          <svg class="select-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-          </svg>
-          <select v-model="sortBy" class="filter-select" aria-label="Sort by" @change="currentPage = 1">
-            <option v-for="opt in sortOptions" :key="opt" :value="opt">Sort by: {{ opt }}</option>
-          </select>
-        </div>
+        </label>
 
         <div class="view-toggle">
-          <button
-            class="view-btn"
-            :class="{ 'view-btn--active': viewMode === 'grid' }"
-            type="button"
-            aria-label="Grid view"
-            @click="viewMode = 'grid'"
-          >
+          <button class="view-btn" :class="{ 'view-btn--active': viewMode === 'grid' }" type="button" aria-label="Grid view" @click="viewMode = 'grid'">
             <svg viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6" />
               <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6" />
@@ -376,189 +358,169 @@ const closeMenu = () => {
               <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6" />
             </svg>
           </button>
-          <button
-            class="view-btn"
-            :class="{ 'view-btn--active': viewMode === 'list' }"
-            type="button"
-            aria-label="List view"
-            @click="viewMode = 'list'"
-          >
+          <button class="view-btn" :class="{ 'view-btn--active': viewMode === 'list' }" type="button" aria-label="List view" @click="viewMode = 'list'">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
           </button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ── Template cards ──────────────────────────────────────────────── -->
-    <div v-if="totalTemplates === 0" class="empty-state">
+    <section v-if="isPageLoading" class="empty-state">
+      <p>Loading templates...</p>
+    </section>
+
+    <section v-else-if="pageError" class="empty-state empty-state--error">
+      <p>{{ pageError }}</p>
+    </section>
+
+    <section v-else-if="totalTemplates === 0" class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" class="empty-icon" aria-hidden="true">
         <rect x="5" y="4" width="14" height="16" rx="1.5" stroke="currentColor" stroke-width="1.6" />
         <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
       </svg>
-      <p>No templates found.</p>
-    </div>
+      <p>No templates found. Create your first one to get started.</p>
+    </section>
 
-    <div v-else :class="viewMode === 'grid' ? 'cards-grid' : 'cards-list'">
-      <div
-        v-for="tpl in paginatedTemplates"
-        :key="tpl.id"
-        class="template-card"
-        @click.stop
-      >
-        <!-- Card header -->
+    <section v-else :class="viewMode === 'grid' ? 'cards-grid' : 'cards-list'">
+      <article v-for="template in paginatedTemplates" :key="template.id" class="template-card" @click="openTemplateModal(template)">
         <div class="card-header">
           <div class="card-title-row">
-            <span class="card-name">{{ tpl.name }}</span>
-            <span class="category-badge" :class="categoryClass(tpl.category)">{{ tpl.category }}</span>
+            <h2 class="card-name">{{ template.name }}</h2>
+            <span class="card-chip">#{{ template.id }}</span>
           </div>
-          <button
-            class="fav-btn"
-            :class="{ 'fav-btn--active': tpl.favorite }"
-            type="button"
-            :aria-label="tpl.favorite ? 'Remove from favorites' : 'Add to favorites'"
-            @click.stop="toggleFavorite(tpl)"
-          >
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"
-                :fill="tpl.favorite ? '#f59e0b' : 'none'"
-                stroke="#f59e0b"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
 
-          <!-- More options button (list view) -->
-          <div v-if="viewMode === 'list'" class="menu-wrap">
-            <button
-              class="more-btn"
-              type="button"
-              :aria-label="`Actions for ${tpl.name}`"
-              @click.stop="toggleMenu(tpl.id, $event)"
-            >
+          <div class="menu-wrap">
+            <button class="action-btn" type="button" :aria-label="`Actions for ${template.name}`" @click.stop="toggleMenu(template.id, $event)">
               <svg viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="5" r="1" fill="currentColor" />
                 <circle cx="12" cy="12" r="1" fill="currentColor" />
                 <circle cx="12" cy="19" r="1" fill="currentColor" />
               </svg>
             </button>
-            <div v-if="activeMenuId === tpl.id" class="dropdown-menu" role="menu" @click.stop>
-              <button class="dropdown-item" role="menuitem" type="button">Edit</button>
-              <button class="dropdown-item" role="menuitem" type="button">Duplicate</button>
-              <button class="dropdown-item dropdown-item--danger" role="menuitem" type="button">Delete</button>
+
+            <div v-if="activeMenuId === template.id" class="dropdown-menu" role="menu" @click.stop>
+              <button class="dropdown-item" role="menuitem" type="button" @click="openTemplateModal(template)">Edit</button>
+              <button class="dropdown-item dropdown-item--danger" role="menuitem" type="button" @click="deleteTemplate(template)">Delete</button>
             </div>
           </div>
         </div>
 
-        <!-- Body preview -->
-        <div class="card-body">
-          <p class="card-preview">{{ tpl.body }}</p>
-        </div>
+        <p class="card-preview">{{ contentPreview(template.content) }}</p>
 
-        <!-- Footer -->
-        <div class="card-footer">
-          <div class="card-meta">
-            <span class="meta-text">Used {{ tpl.usedTimes }} times</span>
-            <span class="meta-sep">·</span>
-            <span class="meta-text">Updated {{ tpl.updatedAgo }}</span>
-          </div>
-          <div class="card-actions">
-            <button class="action-btn" type="button" aria-label="Preview template">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6" />
-              </svg>
-            </button>
-            <button class="action-btn" type="button" aria-label="Duplicate template">
-              <svg viewBox="0 0 24 24" fill="none">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </button>
-            <div class="menu-wrap">
-              <button
-                class="action-btn"
-                type="button"
-                :aria-label="`More actions for ${tpl.name}`"
-                @click.stop="toggleMenu(tpl.id, $event)"
-              >
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="5" r="1" fill="currentColor" />
-                  <circle cx="12" cy="12" r="1" fill="currentColor" />
-                  <circle cx="12" cy="19" r="1" fill="currentColor" />
-                </svg>
-              </button>
-              <div v-if="activeMenuId === tpl.id" class="dropdown-menu" role="menu" @click.stop>
-                <button class="dropdown-item" role="menuitem" type="button">Edit</button>
-                <button class="dropdown-item" role="menuitem" type="button">Duplicate</button>
-                <button class="dropdown-item dropdown-item--danger" role="menuitem" type="button">Delete</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <footer class="card-footer">
+          <span>{{ template.content.length }} characters</span>
+          <span>{{ contentLineCount(template.content) }} lines</span>
+        </footer>
+      </article>
+    </section>
 
-    <!-- ── Pagination ──────────────────────────────────────────────────── -->
-    <div v-if="totalTemplates > 0" class="pagination-bar">
-      <span class="pagination-info">
-        Showing {{ showingFrom }} to {{ showingTo }} of {{ totalTemplates }} templates
-      </span>
+    <footer v-if="totalTemplates > 0 && !isPageLoading && !pageError" class="pagination-bar">
+      <span class="pagination-info">Showing {{ showingFrom }} to {{ showingTo }} of {{ totalTemplates }} templates</span>
+
       <div class="pagination-controls">
-        <button
-          class="page-btn"
-          type="button"
-          aria-label="Previous page"
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
-        >
+        <button class="page-btn" type="button" aria-label="Previous page" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
+
         <button
-          v-for="p in pageNumbers"
-          :key="p"
+          v-for="page in pageNumbers"
+          :key="page"
           class="page-btn"
-          :class="{
-            'page-btn--active': p === currentPage,
-            'page-btn--ellipsis': p === '...',
-          }"
+          :class="{ 'page-btn--active': page === currentPage, 'page-btn--ellipsis': page === '...' }"
           type="button"
-          :disabled="p === '...'"
-          @click="goToPage(p)"
+          :disabled="page === '...'"
+          @click="goToPage(page)"
         >
-          {{ p }}
+          {{ page }}
         </button>
-        <button
-          class="page-btn"
-          type="button"
-          aria-label="Next page"
-          :disabled="currentPage === totalPages"
-          @click="goToPage(currentPage + 1)"
-        >
+
+        <button class="page-btn" type="button" aria-label="Next page" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
       </div>
+    </footer>
+
+    <div v-if="isModalOpen" class="template-modal-backdrop" @click.self="closeTemplateModal">
+      <section class="template-modal" role="dialog" aria-modal="true" :aria-label="modalTitle">
+        <header class="template-modal__header">
+          <div>
+            <p class="template-modal__eyebrow">Template details</p>
+            <h2 class="template-modal__title">{{ modalTitle }}</h2>
+          </div>
+
+          <button class="modal-close-button" type="button" aria-label="Close modal" @click="closeTemplateModal">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="m7 7 10 10" />
+              <path d="m17 7-10 10" />
+            </svg>
+          </button>
+        </header>
+
+        <form class="template-modal__form" @submit.prevent="saveTemplate">
+          <label class="modal-field modal-field--full">
+            <span>Name</span>
+            <input v-model="templateForm.name" type="text" maxlength="255" required />
+          </label>
+
+          <label class="modal-field modal-field--full">
+            <span>Content</span>
+            <textarea
+              v-model="templateForm.content"
+              rows="10"
+              required
+              placeholder="Write your reusable message template here."
+            />
+          </label>
+
+          <div class="template-preview">
+            <div>
+              <strong>Characters</strong>
+              <span>{{ templateForm.content.trim().length }}</span>
+            </div>
+            <div>
+              <strong>Lines</strong>
+              <span>{{ contentLineCount(templateForm.content) }}</span>
+            </div>
+          </div>
+
+          <div v-if="modalError || modalMessage" class="modal-feedback" :class="{ 'is-error': modalError }">
+            {{ modalError || modalMessage }}
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-secondary" type="button" @click="closeTemplateModal">Cancel</button>
+            <button
+              v-if="activeTemplateId"
+              class="btn-danger"
+              type="button"
+              :disabled="isDeletingTemplate"
+              @click="deleteSelectedTemplate"
+            >
+              {{ isDeletingTemplate ? 'Deleting...' : 'Delete' }}
+            </button>
+            <button class="btn-primary" type="submit" :disabled="isSavingTemplate">
+              {{ isSavingTemplate ? 'Saving...' : activeTemplateId ? 'Save changes' : 'Create template' }}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ── Layout ─────────────────────────────────────────────────────────────── */
 .templates-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* ── Page header ─────────────────────────────────────────────────────────── */
 .page-header {
   display: flex;
   align-items: flex-start;
@@ -568,25 +530,25 @@ const closeMenu = () => {
 }
 
 .page-title {
+  margin: 0 0 4px;
   font-size: 1.75rem;
   font-weight: 700;
   color: #111827;
-  margin: 0 0 4px;
 }
 
 .page-subtitle {
   margin: 0;
-  font-size: 0.875rem;
   color: #6b7280;
+  font-size: 0.95rem;
 }
 
 .page-header-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* ── Search ──────────────────────────────────────────────────────────────── */
 .search-wrap {
   position: relative;
   display: flex;
@@ -603,648 +565,550 @@ const closeMenu = () => {
 }
 
 .search-input {
+  width: 240px;
   padding: 9px 12px 9px 32px;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   font-size: 0.875rem;
   color: #374151;
   background: #fff;
-  width: 220px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.search-input:focus {
+.search-input:focus,
+.filter-select:focus,
+.modal-field input:focus,
+.modal-field textarea:focus {
   border-color: #1b9a5d;
   box-shadow: 0 0 0 3px rgba(27, 154, 93, 0.12);
 }
 
-/* ── Primary button ──────────────────────────────────────────────────────── */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: #1b9a5d;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 9px 18px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(27, 154, 93, 0.25);
-  white-space: nowrap;
-}
-
-.btn-primary:hover {
-  background: #168a52;
-}
-
-/* ── Stats grid ──────────────────────────────────────────────────────────── */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: #fff;
+.stat-card,
+.toolbar,
+.template-card,
+.template-modal {
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
 }
 
-.stat-icon-wrap {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon-wrap--templates {
-  background: #e8f5ef;
-  color: #1b9a5d;
-}
-
-.stat-icon-wrap--used {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.stat-icon-wrap--star {
-  background: #fef9ec;
-  color: #f59e0b;
-}
-
-.stat-icon-wrap--tag {
-  background: #fdf4ff;
-  color: #a855f7;
-}
-
-.stat-icon-wrap svg {
-  width: 22px;
-  height: 22px;
+.stat-card {
+  padding: 22px;
+  border-radius: 20px;
 }
 
 .stat-label {
   margin: 0;
-  font-size: 0.8rem;
   color: #6b7280;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .stat-value {
-  margin: 4px 0 2px;
-  font-size: 1.75rem;
+  margin: 10px 0 8px;
+  font-size: 2rem;
   font-weight: 800;
   color: #111827;
-  line-height: 1;
 }
 
 .stat-hint {
   margin: 0;
-  font-size: 0.78rem;
-  font-weight: 500;
+  color: #1b9a5d;
+  font-weight: 600;
+  font-size: 0.92rem;
 }
 
-/* ── Filter row ──────────────────────────────────────────────────────────── */
-.filter-row {
+.toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
 }
 
-/* ── Tabs ─────────────────────────────────────────────────────────────────── */
-.tabs {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
+.toolbar-copy {
+  display: grid;
+  gap: 4px;
 }
 
-.tab-btn {
-  padding: 10px 16px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 0.875rem;
-  font-weight: 500;
+.toolbar-copy strong {
+  color: #111827;
+}
+
+.toolbar-copy span {
   color: #6b7280;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.2s, border-color 0.2s;
-  margin-bottom: -1px;
+  font-size: 0.9rem;
 }
 
-.tab-btn:hover {
-  color: #374151;
-}
-
-.tab-btn--active {
-  color: #1b9a5d;
-  border-bottom-color: #1b9a5d;
-  font-weight: 600;
-}
-
-/* ── Toolbar right ───────────────────────────────────────────────────────── */
-.toolbar-right {
+.toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 8px;
-}
-
-.select-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-icon {
-  position: absolute;
-  left: 9px;
-  width: 13px;
-  height: 13px;
-  color: #9ca3af;
-  pointer-events: none;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .filter-select {
-  padding: 7px 12px 7px 28px;
+  min-width: 170px;
+  padding: 10px 14px;
   border: 1px solid #d1d5db;
-  border-radius: 9px;
-  font-size: 0.8rem;
-  color: #374151;
+  border-radius: 12px;
   background: #fff;
-  cursor: pointer;
+  color: #374151;
+  font: inherit;
   outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  transition: border-color 0.2s;
-  padding-right: 24px;
 }
 
-.filter-select:focus {
-  border-color: #1b9a5d;
-}
-
-/* ── View toggle ─────────────────────────────────────────────────────────── */
 .view-toggle {
-  display: flex;
-  border: 1px solid #d1d5db;
-  border-radius: 9px;
-  overflow: hidden;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f3f4f6;
 }
 
 .view-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  background: #fff;
+  width: 40px;
+  height: 40px;
   border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b7280;
   cursor: pointer;
-  color: #9ca3af;
-  transition: background 0.2s, color 0.2s;
-}
-
-.view-btn + .view-btn {
-  border-left: 1px solid #d1d5db;
-}
-
-.view-btn:hover {
-  background: #f9fafb;
-  color: #374151;
 }
 
 .view-btn--active {
-  background: #f0faf5;
+  background: #ffffff;
   color: #1b9a5d;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .view-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
-/* ── Cards grid ──────────────────────────────────────────────────────────── */
-.cards-grid {
+.cards-grid,
+.cards-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
-.cards-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
-/* ── Template card ───────────────────────────────────────────────────────── */
+.cards-list {
+  grid-template-columns: 1fr;
+}
+
 .template-card {
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.15s;
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .template-card:hover {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.09);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.09);
 }
 
-/* Card header */
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 14px 14px 10px;
-}
-
-.card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-.card-name {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Category badge */
-.category-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.badge--welcome {
-  background: #e8f5ef;
-  color: #1b9a5d;
-}
-
-.badge--promo {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.badge--reminder {
-  background: #fff7ed;
-  color: #ea580c;
-}
-
-.badge--followup {
-  background: #fdf4ff;
-  color: #a855f7;
-}
-
-.badge--other {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.badge--default {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-/* Favorite button */
-.fav-btn {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 2px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #d1d5db;
-  transition: color 0.2s;
-  margin-left: auto;
-}
-
-.fav-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.fav-btn:hover {
-  color: #f59e0b;
-}
-
-.fav-btn--active {
-  color: #f59e0b;
-}
-
-/* Card body */
-.card-body {
-  flex: 1;
-  padding: 0 14px 10px;
-  background: #f9fafb;
-  margin: 0 14px;
-  border-radius: 8px;
-}
-
-.card-preview {
-  margin: 8px 0;
-  font-size: 0.8rem;
-  color: #4b5563;
-  line-height: 1.55;
-  white-space: pre-line;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Card footer */
+.card-header,
+.card-title-row,
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 12px;
-  gap: 8px;
+  gap: 12px;
 }
 
-.card-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.card-title-row {
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
-.meta-text {
-  font-size: 0.75rem;
-  color: #9ca3af;
+.card-name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #111827;
 }
 
-.meta-sep {
-  font-size: 0.75rem;
-  color: #d1d5db;
+.card-chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef8f1;
+  color: #1b9a5d;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.card-preview {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: none;
-  border: none;
-  border-radius: 7px;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: background 0.15s, color 0.15s;
-  padding: 0;
+.card-footer {
+  color: #6b7280;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
 }
 
-.action-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.action-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-/* ── Dropdown menu ───────────────────────────────────────────────────────── */
 .menu-wrap {
   position: relative;
 }
 
-.more-btn {
-  display: flex;
+.action-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: none;
-  border: none;
-  border-radius: 7px;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: background 0.15s, color 0.15s;
-  padding: 0;
 }
 
-.more-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.more-btn svg {
-  width: 14px;
-  height: 14px;
+.action-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .dropdown-menu {
   position: absolute;
+  top: calc(100% + 8px);
   right: 0;
-  top: calc(100% + 4px);
+  min-width: 140px;
+  padding: 8px;
+  border-radius: 14px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
-  min-width: 130px;
-  z-index: 50;
-  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  z-index: 20;
 }
 
 .dropdown-item {
-  display: block;
   width: 100%;
-  text-align: left;
-  background: none;
+  padding: 10px 12px;
   border: none;
-  padding: 9px 14px;
-  font-size: 0.85rem;
-  color: #374151;
+  background: transparent;
+  border-radius: 10px;
+  text-align: left;
+  font: inherit;
+  color: #334155;
   cursor: pointer;
-  transition: background 0.15s;
 }
 
 .dropdown-item:hover {
-  background: #f9fafb;
+  background: #f8fafc;
 }
 
 .dropdown-item--danger {
-  color: #dc2626;
+  color: #b91c1c;
 }
 
-.dropdown-item--danger:hover {
-  background: #fef2f2;
-}
-
-/* ── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: #9ca3af;
-  font-size: 0.9rem;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 240px;
+  padding: 32px;
+  border-radius: 24px;
+  border: 1px dashed #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  text-align: center;
+}
+
+.empty-state--error {
+  color: #b91c1c;
 }
 
 .empty-icon {
-  width: 48px;
-  height: 48px;
-  stroke: #d1d5db;
-  stroke-width: 1.4;
+  width: 34px;
+  height: 34px;
 }
 
-/* ── Pagination ──────────────────────────────────────────────────────────── */
 .pagination-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 4px;
 }
 
 .pagination-info {
-  font-size: 0.85rem;
   color: #6b7280;
+  font-size: 0.92rem;
 }
 
 .pagination-controls {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .page-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 6px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.85rem;
   color: #374151;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.page-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #d1d5db;
 }
 
 .page-btn--active {
-  background: #1b9a5d;
   border-color: #1b9a5d;
+  background: #1b9a5d;
   color: #fff;
-  font-weight: 600;
-}
-
-.page-btn--active:hover {
-  background: #168a52 !important;
-}
-
-.page-btn--ellipsis {
-  cursor: default;
-  border-color: transparent;
-  background: none;
 }
 
 .page-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 1199px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.page-btn svg {
+  width: 16px;
+  height: 16px;
+}
 
-  .cards-grid {
+.template-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(8px);
+}
+
+.template-modal {
+  width: min(720px, 100%);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.template-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.template-modal__eyebrow {
+  margin: 0 0 6px;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.template-modal__title {
+  margin: 0;
+  font-size: 1.45rem;
+  color: #0f172a;
+}
+
+.modal-close-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.template-modal__form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.modal-field--full {
+  grid-column: 1 / -1;
+}
+
+.modal-field span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  padding: 12px 14px;
+  font: inherit;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.modal-field textarea {
+  resize: vertical;
+  min-height: 220px;
+}
+
+.template-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.template-preview > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.template-preview strong {
+  color: #111827;
+}
+
+.modal-feedback {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+
+.modal-feedback.is-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #1b9a5d;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #334155;
+}
+
+.btn-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.btn-primary:disabled,
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary svg {
+  width: 16px;
+  height: 16px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1023px) {
+  .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 767px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .page-header-right {
+  .page-header-right,
+  .toolbar,
+  .toolbar-actions,
+  .pagination-bar {
     width: 100%;
-    flex-wrap: wrap;
   }
 
   .search-input {
     width: 100%;
+    min-width: 0;
   }
 
-  .stats-grid {
+  .search-wrap {
+    width: 100%;
+  }
+
+  .stats-grid,
+  .template-preview {
     grid-template-columns: 1fr;
-  }
-
-  .filter-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .toolbar-right {
-    flex-wrap: wrap;
-  }
-
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pagination-bar {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
 </style>
-

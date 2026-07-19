@@ -125,6 +125,60 @@ class CampainDetailView(generics.RetrieveUpdateDestroyAPIView):
         }, status=status.HTTP_204_NO_CONTENT)
 
 
+class TemplateCreateView(generics.CreateAPIView):
+    serializer_class = TemplateSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Template.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response({
+            'message': 'Template created successfully',
+            'template': serializer.data
+        }, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class TemplateListView(generics.ListAPIView):
+    serializer_class = TemplateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Template.objects.filter(user=self.request.user).order_by('-id')
+
+
+class TemplateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = TemplateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Template.objects.filter(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({
+            'message': 'Template updated successfully',
+            'template': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        template_name = instance.name
+        self.perform_destroy(instance)
+        return Response({
+            'message': f'Template "{template_name}" deleted successfully'
+        }, status=status.HTTP_204_NO_CONTENT)
+
+
 # Message Views
 class MessageListView(generics.ListAPIView):
     serializer_class = MessageSerializer
@@ -176,6 +230,36 @@ class MessageStatisticsView(views.APIView):
         return Response({
             'campaign': CampainSerializer(campaign).data,
             'statistics': stats
+        }, status=status.HTTP_200_OK)
+
+
+class DashboardStatisticsView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        total_contacts = Contact.objects.filter(user=user).count()
+
+        campaigns = Campain.objects.filter(user=user)
+        total_campaigns = campaigns.count()
+        active_campaigns = campaigns.filter(status='active').count()
+
+        messages = Message.objects.filter(campain__user=user)
+        delivered_count = messages.filter(status='delivered').count()
+        sent_count = messages.filter(status__in=['sent', 'delivered']).count()
+        attempted_count = messages.filter(status__in=['sent', 'delivered', 'failed']).count()
+
+        delivery_rate = round((delivered_count / attempted_count * 100), 2) if attempted_count > 0 else 0
+
+        return Response({
+            'total_contacts': total_contacts,
+            'campaigns': {
+                'total': total_campaigns,
+                'active': active_campaigns,
+            },
+            'messages_sent': sent_count,
+            'delivery_rate': delivery_rate,
         }, status=status.HTTP_200_OK)
 
 
@@ -323,4 +407,3 @@ class TaskStatusView(views.APIView):
             }
         
         return Response(response, status=status.HTTP_200_OK)
-

@@ -35,9 +35,15 @@ def send_campaign_whatsapp_task(campaign_id, message_body):
     Asynchronous task to send WhatsApp to all contacts in a campaign
     """
     try:
+
         campaign = Campain.objects.get(id=campaign_id)
+        campaign.status = 'sending'
+        campaign.save(update_fields=['status'])
         twilio_service = TwilioService()
         results = twilio_service.send_campaign_whatsapp(campaign, message_body)
+
+        campaign.status = 'sent'
+        campaign.save(update_fields=['status'])
         
         logger.info(f"Campaign WhatsApp sent. Successful: {len(results['successful'])}, Failed: {len(results['failed'])}")
         from django.conf import settings

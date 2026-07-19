@@ -1,283 +1,171 @@
 <script setup>
-import { ref, computed, nextTick, watch, onUnmounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { useMessageStore } from '../stores/messages'
+import { useContactStore } from '../stores/contacts'
+import { useCampaignStore } from '../stores/campaigns'
 
-// ── Mock conversations ───────────────────────────────────────────────────────
-const allConversations = ref([
-  {
-    id: 1,
-    name: 'Иван Петров',
-    phone: '+359 88 123 4567',
-    initials: 'ИП',
-    avatarColor: '#4f46e5',
-    preview: 'Здравейте! Имаме специална промоция...',
-    status: 'Delivered',
-    time: '10:15',
-    date: '24.06.2026',
-    email: 'ivan.petrov@example.com',
-    tags: ['VIP', 'Client'],
-    added: '15.05.2026 14:30',
-    lastActive: '24.06.2026 10:17',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 10:15',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0ODkw...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Иван,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '10:15',
-        status: 'Delivered',
-      },
-      { id: 2, type: 'received', text: 'Благодаря! Ще се възползвам.', time: '10:17' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Мария Георгиева',
-    phone: '+359 88 234 5678',
-    initials: 'МГ',
-    avatarColor: '#db2777',
-    preview: 'Благодаря! Ще се възползвам.',
-    status: 'Read',
-    time: '10:12',
-    date: '24.06.2026',
-    email: 'maria.georgieva@example.com',
-    tags: ['Client'],
-    added: '10.04.2026 09:20',
-    lastActive: '24.06.2026 10:12',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 10:10',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OGcd...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Мария,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '10:10',
-        status: 'Read',
-      },
-      { id: 2, type: 'received', text: 'Благодаря! Ще се възползвам.', time: '10:12' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Георги Георгиев',
-    phone: '+359 88 345 6789',
-    initials: 'ГГ',
-    avatarColor: '#059669',
-    preview: 'Кога изтича промоцията?',
-    status: 'Delivered',
-    time: '10:10',
-    date: '24.06.2026',
-    email: 'georgi.georgiev@example.com',
-    tags: [],
-    added: '22.03.2026 11:00',
-    lastActive: '24.06.2026 10:10',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 10:08',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OHef...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Георги,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '10:08',
-        status: 'Delivered',
-      },
-      { id: 2, type: 'received', text: 'Кога изтича промоцията?', time: '10:10' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Елена Димитрова',
-    phone: '+359 88 456 7890',
-    initials: 'ЕД',
-    avatarColor: '#7c3aed',
-    preview: 'Чудесно, благодаря!',
-    status: 'Read',
-    time: '10:05',
-    date: '24.06.2026',
-    email: 'elena.dimitrova@example.com',
-    tags: ['VIP'],
-    added: '05.05.2026 15:45',
-    lastActive: '24.06.2026 10:05',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 10:00',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OIgh...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Елена,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '10:00',
-        status: 'Read',
-      },
-      { id: 2, type: 'received', text: 'Чудесно, благодаря!', time: '10:05' },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Димитър Стоянов',
-    phone: '+359 88 567 8901',
-    initials: 'ДС',
-    avatarColor: '#8b5cf6',
-    preview: 'Изпращате ли до друг град?',
-    status: 'Sent',
-    time: '09:58',
-    date: '24.06.2026',
-    email: 'dimitar.stoyanov@example.com',
-    tags: [],
-    added: '14.02.2026 08:30',
-    lastActive: '24.06.2026 09:58',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 09:55',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OJij...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Димитър,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '09:55',
-        status: 'Sent',
-      },
-      { id: 2, type: 'received', text: 'Изпращате ли до друг град?', time: '09:58' },
-    ],
-  },
-  {
-    id: 6,
-    name: 'Николай Николов',
-    phone: '+359 88 678 9012',
-    initials: 'НН',
-    avatarColor: '#0891b2',
-    preview: 'Ок, ще проверя.',
-    status: 'Read',
-    time: '09:45',
-    date: '24.06.2026',
-    email: 'nikolay.nikolov@example.com',
-    tags: ['Client'],
-    added: '20.01.2026 12:00',
-    lastActive: '24.06.2026 09:45',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 09:40',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OKkl...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Николай,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '09:40',
-        status: 'Read',
-      },
-      { id: 2, type: 'received', text: 'Ок, ще проверя.', time: '09:45' },
-    ],
-  },
-  {
-    id: 7,
-    name: 'София Василева',
-    phone: '+359 88 789 0123',
-    initials: 'СВ',
-    avatarColor: '#d97706',
-    preview: 'Много добра оферта!',
-    status: 'Read',
-    time: '09:40',
-    date: '24.06.2026',
-    email: 'sofia.vasileva@example.com',
-    tags: ['VIP'],
-    added: '18.03.2026 10:15',
-    lastActive: '24.06.2026 09:40',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 09:35',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OLmn...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте София,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '09:35',
-        status: 'Read',
-      },
-      { id: 2, type: 'received', text: 'Много добра оферта!', time: '09:40' },
-    ],
-  },
-  {
-    id: 8,
-    name: 'Пламен Петров',
-    phone: '+359 88 890 1234',
-    initials: 'ПП',
-    avatarColor: '#16a34a',
-    preview: 'Благодаря за информацията.',
-    status: 'Delivered',
-    time: '09:30',
-    date: '24.06.2026',
-    email: 'plamen.petrov@example.com',
-    tags: [],
-    added: '01.04.2026 09:00',
-    lastActive: '24.06.2026 09:30',
-    campaign: 'Summer Promo 2026',
-    campaignSent: '24.06.2026 09:25',
-    campaignRecipients: 520,
-    messageId: 'wamid.HBgNMTU0OMop...',
-    messages: [
-      {
-        id: 1,
-        type: 'sent',
-        text: 'Здравейте Пламен,\n🎉\n\nИмаме специална промоция само за Вас!\nВъзползвайте се от 15% отстъпка на всички продукти през този уикенд.\n\nОчакваме Ви! 🙌\n\nВашият екип',
-        time: '09:25',
-        status: 'Delivered',
-      },
-      { id: 2, type: 'received', text: 'Благодаря за информацията.', time: '09:30' },
-    ],
-  },
-])
+const messageStore = useMessageStore()
+const contactStore = useContactStore()
+const campaignStore = useCampaignStore()
 
-// ── State ────────────────────────────────────────────────────────────────────
 const activeTab = ref('All Messages')
 const searchQuery = ref('')
 const messageText = ref('')
-const selectedConversation = ref(allConversations.value[0])
+const selectedConversationId = ref(null)
 const currentPage = ref(1)
 const pageSize = 8
-// totalMessages represents the full server-side count for the "All Messages" view
-const totalMessages = 1245
 const chatScrollRef = ref(null)
 const justCopied = ref(false)
+const isPageLoading = ref(false)
+const pageError = ref('')
+const localMessagesByConversation = ref({})
 let copyTimer = null
 
 const dateRange = ref('25 May – 25 Jun 2026')
-
 const tabs = ['All Messages', 'Sent', 'Delivered', 'Read', 'Failed']
+const avatarPalette = ['#4f46e5', '#db2777', '#059669', '#7c3aed', '#8b5cf6', '#0891b2', '#d97706', '#16a34a']
 
-// ── Filtering ────────────────────────────────────────────────────────────────
+const toDisplayStatus = (status = '') => {
+  const map = {
+    scheduled: 'Sent',
+    sent: 'Sent',
+    delivered: 'Delivered',
+    read: 'Read',
+    failed: 'Failed',
+  }
+  return map[String(status).toLowerCase()] ?? 'Sent'
+}
+
+const formatTime = (dateValue) => {
+  if (!dateValue) return '—'
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })
+}
+
+const formatDate = (dateValue) => {
+  if (!dateValue) return '—'
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleDateString('bg-BG')
+}
+
+const formatDateTime = (dateValue) => {
+  if (!dateValue) return '—'
+  const parsed = new Date(dateValue)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleString('bg-BG', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const getInitials = (name = '') =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk[0]?.toUpperCase() ?? '')
+    .join('')
+
+const getAvatarColor = (seed) => {
+  const index = Math.abs(Number(seed) || 0) % avatarPalette.length
+  return avatarPalette[index]
+}
+
+const contactsById = computed(() =>
+  contactStore.contacts.reduce((acc, contact) => {
+    acc[contact.id] = contact
+    return acc
+  }, {}),
+)
+
+const campaignsById = computed(() =>
+  campaignStore.campaigns.reduce((acc, campaign) => {
+    acc[campaign.id] = campaign
+    return acc
+  }, {}),
+)
+
+const campaignRecipientsById = computed(() =>
+  messageStore.messages.reduce((acc, message) => {
+    const campaignId = message.campain
+    acc[campaignId] = (acc[campaignId] ?? 0) + 1
+    return acc
+  }, {}),
+)
+
+const allConversations = computed(() =>
+  messageStore.messages.map((message) => {
+    const contact = contactsById.value[message.contact] ?? {}
+    const campaign = campaignsById.value[message.campain] ?? {}
+    const sentAt = message.send_at
+    const status = toDisplayStatus(message.status)
+    const messageBody = campaign.description?.trim() || 'Campaign message'
+    const localMessages = localMessagesByConversation.value[message.id] ?? []
+
+    return {
+      id: message.id,
+      name: contact.name ?? `Contact #${message.contact}`,
+      phone: contact.phone ?? '—',
+      initials: getInitials(contact.name ?? 'NA'),
+      avatarColor: getAvatarColor(contact.id ?? message.contact),
+      preview: messageBody,
+      status,
+      time: formatTime(sentAt),
+      date: formatDate(sentAt),
+      email: contact.email ?? '—',
+      tags: Array.isArray(contact.tags) ? contact.tags : [],
+      added: formatDateTime(contact.created_at),
+      lastActive: formatDateTime(sentAt),
+      campaign: campaign.name ?? `Campaign #${message.campain}`,
+      campaignSent: formatDateTime(sentAt),
+      campaignRecipients: campaignRecipientsById.value[message.campain] ?? 0,
+      messageId: `MSG-${message.id}`,
+      messages: [
+        {
+          id: message.id,
+          type: 'sent',
+          text: messageBody,
+          time: formatTime(sentAt),
+          status,
+        },
+        ...localMessages,
+      ],
+    }
+  }),
+)
+
+const selectedConversation = computed(() =>
+  allConversations.value.find((conversation) => conversation.id === selectedConversationId.value) ?? null,
+)
+
 const filteredConversations = computed(() => {
   let list = allConversations.value
   if (activeTab.value !== 'All Messages') {
-    list = list.filter((c) => c.status === activeTab.value)
+    list = list.filter((conversation) => conversation.status === activeTab.value)
   }
   if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
+    const query = searchQuery.value.toLowerCase()
     list = list.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.preview.toLowerCase().includes(q),
+      (conversation) =>
+        conversation.name.toLowerCase().includes(query) ||
+        conversation.preview.toLowerCase().includes(query),
     )
   }
   return list
 })
 
-// totalCount: use the server-side mock total for "All Messages" without a search,
-// otherwise reflect the locally filtered count so the footer stays accurate.
-const totalCount = computed(() =>
-  activeTab.value === 'All Messages' && !searchQuery.value
-    ? totalMessages
-    : filteredConversations.value.length,
-)
+const totalCount = computed(() => filteredConversations.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize)))
 
-const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
+const paginatedConversations = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredConversations.value.slice(start, start + pageSize)
+})
 
 const pageNumbers = computed(() => {
   const total = totalPages.value
@@ -285,30 +173,29 @@ const pageNumbers = computed(() => {
   const cur = currentPage.value
   const pages = [1]
   if (cur > 3) pages.push('...')
-  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p)
+  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p += 1) {
+    pages.push(p)
+  }
   if (cur < total - 2) pages.push('...')
   pages.push(total)
   return pages
 })
 
-const showingFrom = computed(() =>
-  totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize + 1,
-)
+const showingFrom = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize + 1))
 const showingTo = computed(() => Math.min(currentPage.value * pageSize, totalCount.value))
 
-// ── Methods ──────────────────────────────────────────────────────────────────
 const setTab = (tab) => {
   activeTab.value = tab
   currentPage.value = 1
 }
 
-const goToPage = (p) => {
-  if (p === '...' || p < 1 || p > totalPages.value) return
-  currentPage.value = p
+const goToPage = (page) => {
+  if (page === '...' || page < 1 || page > totalPages.value) return
+  currentPage.value = page
 }
 
-const selectConversation = (conv) => {
-  selectedConversation.value = conv
+const selectConversation = (conversation) => {
+  selectedConversationId.value = conversation.id
 }
 
 const statusClass = (status) => {
@@ -337,40 +224,98 @@ const scrollToBottom = async () => {
 }
 
 const sendMessage = () => {
-  if (!messageText.value.trim() || !selectedConversation.value) return
-  selectedConversation.value.messages.push({
-    id: Date.now(),
-    type: 'sent',
-    text: messageText.value.trim(),
-    time: new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' }),
-    status: 'Sent',
-  })
+  const text = messageText.value.trim()
+  if (!text || !selectedConversation.value) return
+
+  const conversationId = selectedConversation.value.id
+  const existing = localMessagesByConversation.value[conversationId] ?? []
+  localMessagesByConversation.value = {
+    ...localMessagesByConversation.value,
+    [conversationId]: [
+      ...existing,
+      {
+        id: Date.now(),
+        type: 'sent',
+        text,
+        time: new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' }),
+        status: 'Sent',
+      },
+    ],
+  }
+
   messageText.value = ''
   scrollToBottom()
 }
 
-const handleKeydown = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
+const handleKeydown = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
     sendMessage()
   }
 }
 
 const copyToClipboard = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
-    justCopied.value = true
-    clearTimeout(copyTimer)
-    copyTimer = setTimeout(() => {
-      justCopied.value = false
-    }, 2000)
-  }).catch((err) => {
-    console.error('Failed to copy to clipboard:', err)
-  })
+  if (!text) return
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      justCopied.value = true
+      clearTimeout(copyTimer)
+      copyTimer = setTimeout(() => {
+        justCopied.value = false
+      }, 2000)
+    })
+    .catch((err) => {
+      console.error('Failed to copy to clipboard:', err)
+    })
 }
 
-onUnmounted(() => clearTimeout(copyTimer))
+const loadPageData = async () => {
+  isPageLoading.value = true
+  pageError.value = ''
+  try {
+    await Promise.all([
+      messageStore.getMessages(),
+      contactStore.showAllContacts(),
+      campaignStore.getCampaigns(),
+    ])
+  } catch (error) {
+    pageError.value = error.response?.data?.error ?? error.message ?? 'Unable to load messages.'
+  } finally {
+    isPageLoading.value = false
+  }
+}
+
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
+watch(totalPages, (nextTotalPages) => {
+  if (currentPage.value > nextTotalPages) {
+    currentPage.value = nextTotalPages
+  }
+})
+
+watch(filteredConversations, (conversations) => {
+  if (conversations.length === 0) {
+    selectedConversationId.value = null
+    return
+  }
+  const selectedInFilter = conversations.some(
+    (conversation) => conversation.id === selectedConversationId.value,
+  )
+  if (!selectedInFilter) {
+    selectedConversationId.value = conversations[0].id
+  }
+})
 
 watch(selectedConversation, () => scrollToBottom(), { immediate: true })
+
+onMounted(() => {
+  loadPageData()
+})
+
+onUnmounted(() => clearTimeout(copyTimer))
 </script>
 
 <template>
@@ -387,7 +332,13 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
             <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
           </svg>
-          <input type="search" class="search-input" placeholder="Search messages..." aria-label="Search messages" />
+          <input
+            v-model="searchQuery"
+            type="search"
+            class="search-input"
+            placeholder="Search messages..."
+            aria-label="Search messages"
+          />
         </div>
         <button class="btn-outline" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -461,37 +412,48 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
         </div>
 
         <div class="conv-list" role="list">
-          <div
-            v-for="conv in filteredConversations"
-            :key="conv.id"
-            class="conv-item"
-            :class="{ 'conv-item--active': selectedConversation?.id === conv.id }"
-            role="listitem"
-            tabindex="0"
-            @click="selectConversation(conv)"
-            @keydown.enter="selectConversation(conv)"
-          >
-            <div class="conv-avatar" :style="{ background: conv.avatarColor }">
-              {{ conv.initials }}
-            </div>
-            <div class="conv-info">
-              <div class="conv-info-top">
-                <span class="conv-name">{{ conv.name }}</span>
-                <span class="conv-status" :class="statusClass(conv.status)">{{ conv.status }}</span>
-              </div>
-              <div class="conv-info-bottom">
-                <span class="conv-preview">{{ conv.preview }}</span>
-                <span class="conv-time">{{ conv.time }}</span>
-              </div>
-            </div>
+          <div v-if="isPageLoading" class="conv-empty">
+            <p>Loading messages...</p>
           </div>
 
-          <div v-if="filteredConversations.length === 0" class="conv-empty">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <p>No messages found.</p>
+          <div v-else-if="pageError" class="conv-empty">
+            <p>{{ pageError }}</p>
           </div>
+
+          <template v-else>
+            <div
+              v-for="conv in paginatedConversations"
+              :key="conv.id"
+              class="conv-item"
+              :class="{ 'conv-item--active': selectedConversation?.id === conv.id }"
+              role="listitem"
+              tabindex="0"
+              @click="selectConversation(conv)"
+              @keydown.enter="selectConversation(conv)"
+            >
+              <div class="conv-avatar" :style="{ background: conv.avatarColor }">
+                {{ conv.initials }}
+              </div>
+              <div class="conv-info">
+                <div class="conv-info-top">
+                  <span class="conv-name">{{ conv.name }}</span>
+                  <span class="conv-status" :class="statusClass(conv.status)">{{ conv.status }}</span>
+                </div>
+                <div class="conv-info-bottom">
+                  <span class="conv-preview">{{ conv.preview }}</span>
+                  <span class="conv-time">{{ conv.time }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="filteredConversations.length === 0" class="conv-empty">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <p>No messages found.</p>
+            </div>
+          </template>
+
         </div>
 
         <div class="conv-footer">
@@ -645,6 +607,9 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
           </div>
         </div>
       </div>
+      <div v-else class="chat-panel chat-panel--empty">
+        <p>{{ isPageLoading ? 'Loading conversation...' : 'Select a conversation to see message details.' }}</p>
+      </div>
 
       <!-- Right: Details panel -->
       <div v-if="selectedConversation" class="details-panel">
@@ -784,6 +749,9 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
             </div>
           </div>
         </div>
+      </div>
+      <div v-else class="details-panel details-panel--empty">
+        <p>No contact selected.</p>
       </div>
     </div>
   </div>
@@ -1241,6 +1209,14 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
   overflow: hidden;
 }
 
+.chat-panel--empty {
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  text-align: center;
+  padding: 24px;
+}
+
 .chat-header {
   display: flex;
   align-items: center;
@@ -1511,6 +1487,14 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.details-panel--empty {
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  text-align: center;
+  padding: 24px;
 }
 
 .details-section {
@@ -1811,4 +1795,3 @@ watch(selectedConversation, () => scrollToBottom(), { immediate: true })
   }
 }
 </style>
-
