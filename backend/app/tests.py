@@ -1,9 +1,13 @@
+from django.core.exceptions import ImproperlyConfigured
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from authentication.models import CampainUser
 from app.models import Template
+from app.services.twilio_service import TwilioService
 
 
 class TemplateAPITests(APITestCase):
@@ -95,3 +99,31 @@ class TemplateAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class TwilioServiceConfigurationTests(TestCase):
+    @override_settings(
+        TWILIO_ACCOUNT_SID='',
+        TWILIO_AUTH_TOKEN='',
+        TWILIO_PHONE_NUMBER='',
+        TWILIO_WHATSAPP_NUMBER='',
+    )
+    def test_missing_twilio_settings_raise_clear_error(self):
+        with self.assertRaisesMessage(
+            ImproperlyConfigured,
+            'Missing required Twilio settings: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TWILIO_WHATSAPP_NUMBER',
+        ):
+            TwilioService()
+
+    @override_settings(
+        TWILIO_ACCOUNT_SID='sid',
+        TWILIO_AUTH_TOKEN='token',
+        TWILIO_PHONE_NUMBER='+1234567890',
+        TWILIO_WHATSAPP_NUMBER='whatsapp:+1234567890',
+    )
+    @patch('app.services.twilio_service.Client')
+    def test_valid_twilio_settings_initialize_client(self, client_mock):
+        service = TwilioService()
+
+        client_mock.assert_called_once_with('sid', 'token')
+        self.assertIs(service.client, client_mock.return_value)

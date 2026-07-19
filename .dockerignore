@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/__pycache__
+**/*.py[cod]
+backend/.env
+backend/db.sqlite3
+backend/celery_broker.db
+backend/celery_results.db
+frontend/node_modules
+frontend/dist
+venv
+env
