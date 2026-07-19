@@ -1,0 +1,118 @@
+services:
+  traefik:
+    build:
+      context: .
+      dockerfile: docker/traefik/Dockerfile
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        VITE_API_URL: /api
+    depends_on:
+      - backend
+    networks:
+      - web
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=whatsapp_sender_web
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.priority=1
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    environment:
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CORS_ALLOWED_ORIGINS: http://localhost,http://127.0.0.1
+      POSTGRES_DB: ${POSTGRES_DB:-whatsapp_sender}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-your_account_sid}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-your_auth_token}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-+1234567890}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-whatsapp:+1234567890}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - web
+      - internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=whatsapp_sender_web
+      - traefik.http.routers.backend.rule=PathPrefix(`/api`) || PathPrefix(`/admin`)
+      - traefik.http.routers.backend.entrypoints=web
+      - traefik.http.routers.backend.priority=100
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/celery/Dockerfile
+    environment:
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      CORS_ALLOWED_ORIGINS: http://localhost,http://127.0.0.1
+      POSTGRES_DB: ${POSTGRES_DB:-whatsapp_sender}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-your_account_sid}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-your_auth_token}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-+1234567890}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-whatsapp:+1234567890}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - internal
+
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-whatsapp_sender}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    build:
+      context: .
+      dockerfile: docker/redis/Dockerfile
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  web:
+    name: whatsapp_sender_web
+  internal:
+    name: whatsapp_sender_internal

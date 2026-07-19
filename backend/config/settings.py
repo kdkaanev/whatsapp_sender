@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,14 +28,32 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = 'django-insecure-s5a08qi_zl8*ot2i+l(s&nl*l_2!gk3n$hci7vqcciwz$=25@('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-CORS_ALLOWED_ORIGINS = [
+def env_to_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_to_list(name, default=None):
+    value = os.environ.get(name)
+    if value is None:
+        return list(default or [])
+
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+DEBUG = env_to_bool('DEBUG', True)
+
+ALLOWED_HOSTS = env_to_list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
+
+CORS_ALLOWED_ORIGINS = env_to_list('CORS_ALLOWED_ORIGINS', [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-]
+])
 
 
 # Application definition
@@ -90,12 +108,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('POSTGRES_DB'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB'),
+            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -153,7 +183,6 @@ REST_FRAMEWORK = {
 
 # JWT Configuration
 from datetime import timedelta
-import os
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -179,9 +208,9 @@ TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', 'your_auth_token')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890')
 TWILIO_WHATSAPP_NUMBER = os.environ.get('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+1234567890')
 
-# Celery Configuration - Database Backend (no Redis required)
-CELERY_BROKER_URL = 'sqla+sqlite:///celery_broker.db'
-CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.db'
+# Celery Configuration
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'sqla+sqlite:///celery_broker.db')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'db+sqlite:///celery_results.db')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
