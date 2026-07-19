@@ -46,9 +46,6 @@ def send_campaign_whatsapp_task(campaign_id, message_body):
         campaign.save(update_fields=['status'])
         
         logger.info(f"Campaign WhatsApp sent. Successful: {len(results['successful'])}, Failed: {len(results['failed'])}")
-        from django.conf import settings
-        print(settings.TWILIO_ACCOUNT_SID)
-        print(settings.TWILIO_AUTH_TOKEN[:6])
 
         return {
             'status': 'completed',

@@ -1,8 +1,11 @@
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
-from django.conf import settings
-from app.models import Message, Contact
 import logging
+
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from twilio.base.exceptions import TwilioRestException
+from twilio.rest import Client
+
+from app.models import Contact, Message
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +16,22 @@ class TwilioService:
         self.auth_token = settings.TWILIO_AUTH_TOKEN
         self.phone_number = settings.TWILIO_PHONE_NUMBER
         self.whatsapp_number = settings.TWILIO_WHATSAPP_NUMBER
+
+        missing_settings = [
+            setting_name
+            for setting_name, value in {
+                'TWILIO_ACCOUNT_SID': self.account_sid,
+                'TWILIO_AUTH_TOKEN': self.auth_token,
+                'TWILIO_PHONE_NUMBER': self.phone_number,
+                'TWILIO_WHATSAPP_NUMBER': self.whatsapp_number,
+            }.items()
+            if not value
+        ]
+        if missing_settings:
+            raise ImproperlyConfigured(
+                f"Missing required Twilio settings: {', '.join(missing_settings)}"
+            )
+
         self.client = Client(self.account_sid, self.auth_token)
 
     def send_sms(self, to_phone_number, message_body):
