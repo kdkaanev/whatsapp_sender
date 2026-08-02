@@ -1,10 +1,12 @@
 from rest_framework import generics, status, views
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.db.models import Q, Count
 from .models import Contact, Campain, Message, Template, WebhookEvent
 from .serializers import ContactSerializer, CampainSerializer, MessageSerializer, TemplateSerializer, WebhookEventSerializer
 from .services.twilio_service import TwilioService
+from rest_framework.decorators import api_view, permission_classes
+from django.http import JsonResponse
 
 
 class ContactCreateView(generics.CreateAPIView):
@@ -407,3 +409,10 @@ class TaskStatusView(views.APIView):
             }
         
         return Response(response, status=status.HTTP_200_OK)
+
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    return JsonResponse({'status': 'ok'}, status=status.HTTP_200_OK)

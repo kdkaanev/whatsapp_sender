@@ -34,6 +34,7 @@ services:
         condition: service_healthy
     networks:
       - internal
+   
 
   frontend:
     build:
@@ -52,6 +53,7 @@ services:
       - traefik.http.routers.frontend.entrypoints=web
       - traefik.http.routers.frontend.priority=1
       - traefik.http.services.frontend.loadbalancer.server.port=80
+   
 
   backend:
     build:
@@ -105,6 +107,7 @@ services:
         condition: service_completed_successfully
     networks:
       - internal
+  
 
   postgres:
     build:
@@ -123,6 +126,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - internal
+   
 
   redis:
     build:
@@ -135,6 +139,11 @@ services:
       retries: 5
     networks:
       - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:

@@ -5,7 +5,7 @@ from .views import (
     TemplateCreateView, TemplateListView, TemplateDetailView,
     SendSMSView, SendWhatsAppView, TaskStatusView,
     MessageListView, MessageStatisticsView, MessageByCampaignView,
-    DashboardStatisticsView
+    DashboardStatisticsView, health_check
 )
 from .import_views import ContactImportView
 
@@ -27,6 +27,7 @@ urlpatterns = [
     path('templates/', TemplateListView.as_view(), name='template-list'),
     path('templates/create/', TemplateCreateView.as_view(), name='template-create'),
     path('templates/<int:pk>/', TemplateDetailView.as_view(), name='template-detail'),
+    path('health/', health_check, name='health-check'),
 
     # Send campaign messages (async)
     path('campaigns/<int:campaign_id>/send-sms/', SendSMSView.as_view(), name='send-sms'),
