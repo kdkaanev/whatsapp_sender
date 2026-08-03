@@ -24,6 +24,9 @@ jobs:
 
           script: |
             cd ~/whatsapp_sender
+            pwd
+            ls -la
+            ls -la .env.prod
 
             git pull origin main
 
