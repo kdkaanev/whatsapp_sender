@@ -2,11 +2,23 @@ entryPoints:
   http:
     address: ":80"
 
+  https:
+    address: ":443"
+
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "whatsapp_sender_public"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: patla4ka47@gmail.com
+      storage: /letsencrypt/acme.json
+
+      httpChallenge:
+        entryPoint: http
 
 api:
   dashboard: true
