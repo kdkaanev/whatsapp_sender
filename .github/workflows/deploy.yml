@@ -28,5 +28,6 @@ jobs:
             git pull origin main
 
             docker compose -f docker-compose.prod.yml up -d --build
-
+            docker compose exec -T backend python manage.py migrate --noinput
+            docker compose exec -T backend python manage.py collectstatic --noinput
             docker image prune -f

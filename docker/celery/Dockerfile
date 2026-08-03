@@ -6,8 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app/backend
 
 COPY backend/requirements.txt .
+COPY docker/celery/entrypoint.sh /entrypoint.sh
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 
-CMD ["celery", "-A", "config", "worker", "--loglevel=info"]
+ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x /entrypoint.sh
