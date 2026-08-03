@@ -24,13 +24,25 @@ jobs:
 
           script: |
             cd ~/whatsapp_sender
-            pwd
-            ls -la
-            ls -la .env.prod
 
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
 
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose exec -T backend python manage.py migrate --noinput
-            docker compose exec -T backend python manage.py collectstatic --noinput
+            docker compose --env-file .env.prod \
+              -f docker-compose.prod.yml \
+              up -d --build --force-recreate
+
+            docker compose --env-file .env.prod \
+              -f docker-compose.prod.yml \
+              exec -T backend python manage.py migrate --noinput
+
+            docker compose --env-file .env.prod \
+              -f docker-compose.prod.yml \
+              exec -T backend python manage.py collectstatic --noinput
+            
+            
+            docker compose --env-file .env.prod \
+              -f docker-compose.prod.yml \
+              exec -T celery env | grep SECRET_KEY
+
             docker image prune -f
