@@ -94,7 +94,7 @@ onMounted(() => {
 		<header class="hero">
 			<div>
 				<p class="eyebrow">Overview</p>
-				<h1 class="title">Dashboard</h1>
+				<h1 class="title">Dashboard(DEMO)</h1>
 				<p class="subtitle">
 					Track campaign activity, contact growth, and recent messaging performance from one place.
 				</p>
