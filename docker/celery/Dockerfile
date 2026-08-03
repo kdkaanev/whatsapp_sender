@@ -10,6 +10,6 @@ COPY docker/celery/entrypoint.sh /entrypoint.sh
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
-
-ENTRYPOINT ["/entrypoint.sh"]
 RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
