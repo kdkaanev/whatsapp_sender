@@ -104,6 +104,7 @@ def send_activation_email(user_id):
         activation_link = (
         f"https://campaingnflow.com/api/auth/activate/{uid}/{token}/"
     )
+        #test
         send_mail(
             'Activate your account',
             f'Please click the following link to activate your account: {activation_link}',
