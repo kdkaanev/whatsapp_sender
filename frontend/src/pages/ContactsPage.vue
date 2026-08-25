@@ -234,6 +234,26 @@ const handleDelete = async (id) => {
   await contactStore.deleteContact(id)
 }
 
+const isDeletingSelected = ref(false)
+
+const deleteSelectedContacts = async () => {
+  const ids = Array.from(selectedIds.value)
+  if (ids.length === 0) return
+  if (!confirm(`Delete ${ids.length} selected contact${ids.length > 1 ? 's' : ''}?`)) return
+  isDeletingSelected.value = true
+  try {
+    const results = await Promise.allSettled(ids.map((id) => contactStore.deleteContact(id)))
+    const deletedIds = ids.filter((_, i) => results[i].status === 'fulfilled')
+    selectedIds.value = new Set(ids.filter((_, i) => results[i].status === 'rejected'))
+    if (deletedIds.length < ids.length) {
+      const failCount = ids.length - deletedIds.length
+      alert(`${failCount} contact${failCount > 1 ? 's' : ''} could not be deleted.`)
+    }
+  } finally {
+    isDeletingSelected.value = false
+  }
+}
+
 const deleteSelectedContact = async () => {
   if (!selectedContact.value?.id) {
     modalError.value = 'This contact cannot be deleted.'
@@ -274,6 +294,21 @@ const addContact = () => {
     <div class="page-header">
       <h1 class="page-title">Contacts</h1>
       <div class="header-actions">
+        <button
+          v-if="selectedIds.size > 0"
+          class="btn-danger-outline"
+          type="button"
+          :disabled="isDeletingSelected"
+          @click="deleteSelectedContacts"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+          {{ isDeletingSelected ? 'Deleting...' : `Delete Selected (${selectedIds.size})` }}
+        </button>
         <ImportDialog @import="onCSVImport" />
         <ContactFormDialog @add-contact="addContact" />
         <button class="btn-icon" type="button" aria-label="More options">
@@ -429,6 +464,39 @@ const addContact = () => {
   gap: 10px;
 }
 
+.btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-danger-outline:hover {
+  background: #fee2e2;
+}
+
+.btn-danger-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-danger-outline svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -443,7 +511,6 @@ const addContact = () => {
   padding: 0;
   transition: background 0.2s;
 }
-
 .btn-icon:hover {
   background: #f9fafb;
 }

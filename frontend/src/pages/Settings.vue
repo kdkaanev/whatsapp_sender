@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const STORAGE_KEYS = {
   SETTINGS_NOTIFICATIONS: 'settings_notifications',
@@ -245,6 +247,11 @@ const toggleTwoFactor = () => {
   twoFactorEnabled.value = !twoFactorEnabled.value
   writeStoredValue(STORAGE_KEYS.SETTINGS_TWO_FACTOR, twoFactorEnabled.value)
 }
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/')
+}
 </script>
 
 <template>
@@ -288,6 +295,15 @@ const toggleTwoFactor = () => {
             <p class="profile-company">{{ displayProfile.email }}</p>
           </div>
         </div>
+
+        <button class="logout-button" type="button" @click="handleLogout">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Log Out
+        </button>
       </div>
     </header>
 
@@ -777,6 +793,35 @@ const toggleTwoFactor = () => {
   margin-top: 2px;
   color: #64748b;
   font-size: 0.92rem;
+}
+
+.logout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 10px;
+  background: rgba(254, 242, 242, 0.7);
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background: rgba(254, 226, 226, 0.9);
+  border-color: rgba(220, 38, 38, 0.6);
+}
+
+.logout-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .page-header h1 {
