@@ -1,5 +1,9 @@
 from celery import shared_task
-from app.models import Message, Campain
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from app.models import Message, Campain, CampainUser
 from app.services.twilio_service import TwilioService
 import logging
 
@@ -88,3 +92,22 @@ def send_single_whatsapp_task(phone_number, message_body):
     except Exception as e:
         logger.error(f"Error sending single WhatsApp: {str(e)}")
         raise
+
+@shared_task
+def send_activation_email(user_id):
+    
+        user = CampainUser.objects.get(id=user_id)
+        
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        
+        activation_link = (
+        f"https://campaingnflow.com/api/auth/activate/{uid}/{token}/"
+    )
+        send_mail(
+            'Activate your account',
+            f'Please click the following link to activate your account: {activation_link}',
+            'no-reply@campaingnflow.com',
+            [user.email],
+            fail_silently=False,
+        )

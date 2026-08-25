@@ -1,3 +1,6 @@
+import re
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import CampainUser, UserProfile
@@ -36,6 +39,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True, min_length=8)
 
@@ -43,15 +47,25 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = CampainUser
         fields = ('email', 'password', 'password_confirm')
 
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError('Passwords do not match')
-        return attrs
+    def validate_password(self, value):
+        validate_password(value)
+        
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError('Password must contain at least one uppercase letter.')
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError('Password must contain at least one lowercase letter.')
+        if not re.search(r'\d', value):
+            raise serializers.ValidationError('Password must contain at least one digit.')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
+            raise serializers.ValidationError('Password must contain at least one special character.')
+        return value
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
-        user = CampainUser.objects.create_user(**validated_data, password=password)
+        email = validated_data.get('email')
+        user = CampainUser.objects.create_user(email=email, password=password, is_active=False)
+        
         return user
 
 

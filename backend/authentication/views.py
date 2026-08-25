@@ -23,6 +23,7 @@ class RegisterView(generics.CreateAPIView):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         user = serializer.instance
+        send_activation_email.delay(user.id)  # Send activation email asynchronously    
         return Response({
             'message': 'User registered successfully',
             'user': UserSerializer(user).data

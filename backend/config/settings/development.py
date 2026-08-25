@@ -12,3 +12,4 @@ CORS_ALLOWED_ORIGINS = [
 CORS_TRUSTED_ORIGINS = [
     'http://localhost:5173',
 ]
+
