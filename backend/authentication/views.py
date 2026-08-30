@@ -2,6 +2,7 @@ from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from app.tasks import send_activation_email
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
