@@ -105,8 +105,8 @@ def send_activation_email(user_id):
         token = default_token_generator.make_token(user)
         
         activation_link = (
-        f"https://campaingnflow.com/api/auth/activate/{uid}/{token}/"
-    )
+            f"{settings.FRONTEND_URL}/activate/{uid}/{token}"
+        )
         context = {
             'user': user,
             'activation_link': activation_link,
