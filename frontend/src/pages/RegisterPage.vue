@@ -14,6 +14,7 @@ const form = reactive({
 
 const isLoading = ref(false)
 const errorMessage = ref('')
+const emailMessage = ref('')
 
 const onSubmit = async () => {
   errorMessage.value = ''
@@ -27,8 +28,8 @@ const onSubmit = async () => {
 
   try {
     await authStore.register(form.email, form.password, form.passwordConfirm)
-    await authStore.login(form.email, form.password)
-    router.push('/')
+    
+    emailMessage.value = 'Registration successful! Please check your email to activate your account.'
   } catch (error) {
     errorMessage.value =
       error?.detail ||
@@ -81,6 +82,8 @@ const onSubmit = async () => {
       />
 
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+      <p v-if="emailMessage" class="success">{{ emailMessage }}</p>
+      
       <button type="submit" :disabled="isLoading">
         {{ isLoading ? 'Creating account...' : 'Register and sign in' }}
       </button>
@@ -156,6 +159,11 @@ button:disabled {
 .error {
   margin: 4px 0 0;
   color: #c0392b;
+  font-size: 14px;
+}
+.success {
+  margin: 4px 0 0;
+  color: #27ae60;
   font-size: 14px;
 }
 

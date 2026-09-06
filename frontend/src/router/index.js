@@ -10,6 +10,7 @@ import RegisterPage from '../pages/RegisterPage.vue'
 import LandingPage from '../pages/LandingPage.vue'
 import CreateContact from '../components/CreateContactss.vue'
 import CreateCampaign from '../components/CreateCampaign.vue'
+import ActivateView from '../pages/ActivateView.vue'
 
 const routes = [
   {
@@ -67,9 +68,13 @@ const routes = [
     path: '/create-campaign',
     name: 'CreateCampaign',
     component: CreateCampaign
+  },
+  {
+    path: '/activate/:uidb64/:token',
+    name: 'Activate',
+    component: ActivateView
   }
-
-]
+];
 
 const router = createRouter({
   history: createWebHistory(),
@@ -78,7 +83,12 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const hasToken = Boolean(localStorage.getItem('access_token'))
-  const isPublicRoute = to.path === '/' || to.path === '/login' || to.path === '/register'
+
+  const isPublicRoute =
+    to.path === '/' ||
+    to.path === '/login' ||
+    to.path === '/register' ||
+    to.path.startsWith('/activate/')
 
   if (!isPublicRoute && !hasToken) {
     return { path: '/' }

@@ -1,9 +1,12 @@
 from celery import shared_task
-from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
-from app.models import Message, Campain, CampainUser
+from app.models import Message, Campain
+from authentication.models import CampainUser
 from app.services.twilio_service import TwilioService
 import logging
 
@@ -102,13 +105,22 @@ def send_activation_email(user_id):
         token = default_token_generator.make_token(user)
         
         activation_link = (
-        f"https://campaingnflow.com/api/auth/activate/{uid}/{token}/"
-    )
-        #test
-        send_mail(
-            'Activate your account',
-            f'Please click the following link to activate your account: {activation_link}',
-            'no-reply@campaingnflow.com',
-            [user.email],
-            fail_silently=False,
+            f"{settings.FRONTEND_URL}/activate/{uid}/{token}"
         )
+        context = {
+            'user': user,
+            'activation_link': activation_link,
+        }
+        
+        html_content = render_to_string('emails/activate_account.html', context)
+        email = EmailMultiAlternatives(
+            subject="Activate your CampaignFlow account",
+            body=(
+                f"Please activate your account by clicking this link: "
+                f"{activation_link}"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=False)
