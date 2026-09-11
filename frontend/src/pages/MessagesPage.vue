@@ -40,21 +40,21 @@ const formatTime = (dateValue) => {
   if (!dateValue) return '—'
   const parsed = new Date(dateValue)
   if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })
+  return parsed.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
 const formatDate = (dateValue) => {
   if (!dateValue) return '—'
   const parsed = new Date(dateValue)
   if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleDateString('bg-BG')
+  return parsed.toLocaleDateString('en-US')
 }
 
 const formatDateTime = (dateValue) => {
   if (!dateValue) return '—'
   const parsed = new Date(dateValue)
   if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleString('bg-BG', {
+  return parsed.toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -237,7 +237,7 @@ const sendMessage = () => {
         id: Date.now(),
         type: 'sent',
         text,
-        time: new Date().toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         status: 'Sent',
       },
     ],
